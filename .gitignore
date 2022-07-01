@@ -2,6 +2,11 @@
 __pycache__/
 *.py[cod]
 *$py.class
+*.mp4
+*.mod
+imagens/
+results/*
+!results/dummy.txt
 
 # C extensions
 *.so
