@@ -9,10 +9,10 @@ def get_edges(dictionary: dict, steps: float) ->tuple:
 
 def correct_edges(lenx: float, leny: float, center: tuple[int], environment_shape: np.ndarray) -> list[int]:
     corrected_edges = np.zeros(4, dtype=np.int64)
-    left_edge = int(center[0]-lenx)
-    right_edge = int(center[0]+lenx)
-    bottom_edge = int(center[1]-leny)
-    upper_edge = int(center[1]+leny)
+    left_edge = int(center[0]-(lenx/2))
+    right_edge = int(center[0]+(lenx/2))
+    bottom_edge = int(center[1]-(leny/2))
+    upper_edge = int(center[1]+(leny/2))
 
     if left_edge < 0:
         corrected_edges[0] = 0
@@ -27,14 +27,18 @@ def correct_edges(lenx: float, leny: float, center: tuple[int], environment_shap
     if bottom_edge < 0:
         corrected_edges[2] = 0
     else:
-        corrected_edges[2] = left_edge
+        corrected_edges[2] = bottom_edge
 
     if upper_edge > environment_shape[1]:
         corrected_edges[3] = environment_shape[1]
     else:
-        corrected_edges[3] = right_edge
+        corrected_edges[3] = upper_edge
 
     return corrected_edges
+
+def get_indexes(lenx: int, leny: int, steps: float) -> np.ndarray:
+    return
+
 
 def create_environment(init_array: np.ndarray, steps, params: dict[str, dict])-> np.ndarray:
     """

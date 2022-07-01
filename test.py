@@ -22,6 +22,12 @@ environ_params = {
         "constant": 0.5,
         "x_distance": 0.5,
         "y_distance": 20
+    },
+    "solid_square": {
+        "center": [15, 15],
+        "constant": 0.7,
+        "x_distance": 20,
+        "y_distance": 0.5
     }
 }
 constant = environment_engine.create_environment(array_wave, dx, environ_params)
