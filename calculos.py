@@ -6,8 +6,7 @@ def solve_wave_equation(
     initial_condition: np.ndarray,
     steps: tuple[float],
     max_time: float,
-    constant: float = 1.,
-    velocity_ratio: float = 1.
+    environment: float = 1.
 ) -> np.ndarray:
     """
         Solution to 2d wave equation, initial_condition is an 2d array of floats,
@@ -18,15 +17,14 @@ def solve_wave_equation(
     length = int(max_time/steps[1])
     ic_lenx = initial_condition.shape[0]
     ic_leny = initial_condition.shape[1]
+    constant = (environment**2)/(steps[0]**2)
 
     array = calculations.calc.free_wave_equation_2d(
         ic=initial_condition,
         c=constant,
         sol_len=length,
-        delta_x=steps[0],
-        delta_t=steps[1],
+        dt=steps[1],
         ic_lenx=ic_lenx,
-        ic_leny=ic_leny,
-        vr = velocity_ratio
+        ic_leny=ic_leny
     )
     return array.T
