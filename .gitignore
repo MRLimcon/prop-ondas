@@ -5,7 +5,8 @@ __pycache__/
 *.mp4
 *.mod
 imagens/
-
+results/*
+!results/dummy.txt
 
 # C extensions
 *.so

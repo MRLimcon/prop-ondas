@@ -53,7 +53,7 @@ def plot_response(array_t, array, dt, dx):
     fig.tight_layout()
     plt.show()
 
-def animate_simulation(array_t, X, Y, result, num_frames, ani_type = "2d"):
+def animate_simulation(array_t, X, Y, result, num_frames, file_name, ani_type = "2d"):
     global ax, kind
 
     if ani_type == "surface":
@@ -88,4 +88,4 @@ def animate_simulation(array_t, X, Y, result, num_frames, ani_type = "2d"):
 
     ani = animation.FuncAnimation(fig, change_plot, frames=num_frames, fargs=(plot_array, plot), interval=1000 / fps, blit=False)
 
-    ani.save("movie.mp4")
+    ani.save(f"./results/{file_name}")

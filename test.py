@@ -24,4 +24,4 @@ result = solve_wave_equation(
 
 utils.plot_f_l_frames(result)
 utils.plot_response(array_t, result, dt, dx)
-#utils.animate_simulation(array_t, X, Y, result, 150)
+utils.animate_simulation(array_t, X, Y, result, 150, "movie.mp4")
