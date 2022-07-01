@@ -10,12 +10,10 @@ def solve_wave_equation(
     velocity_ratio: float = 1.
 ) -> np.ndarray:
     """
-        Solution to 1d wave equation, initial_condition is an 1d array of floats,
-        initial_velocities is an 1d array of floats,
-        constant is the speed constant (wave speed, light speed, etc),
-        steps is an tuple of the format (dx, dt, ), remember to always put dt < 100*c²/dx²,
+        Solution to 2d wave equation, initial_condition is an 2d array of floats,
+        constant is the environment conditions for the speed constant,
+        steps is an tuple of the format (dx, dt, ), remember to always put dt < c²/10*dx²,
         max_time is the max time for the solution, remember to scale with dt to allocate enough memory,
-        type is the type of the solution, "free" is the solution with two free edges, "closed" is the solution with two unmovable edges
     """
     length = int(max_time/steps[1])
     ic_lenx = initial_condition.shape[0]

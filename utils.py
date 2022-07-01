@@ -4,22 +4,34 @@ from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-def make_fft(values, timestep):
+def make_fft(values: np.ndarray, timestep: float) -> None:
+    """
+        Visualizes the frequency peaks for the values
+    """
     n1 = len(values)
     fft_results1 = abs(np.fft.fft(values))
     fft_results1 = fft_results1 / np.max(fft_results1)
     freq = np.fft.fftfreq(n1, d=timestep)
 
-    # PEGANDO OS PICOS DE FREQUÊNCIA
     peaks1 = find_peaks(fft_results1)[0]
     filters = [fft_results1[peak] > 0.3 and freq[peak] >= 0 for peak in peaks1]
     peaks1 = peaks1[filters]
 
     print(f"As frequências de pico para o sensor são {freq[peaks1]}")
 
-def create_wave(x_max, y_max, t_max, dx, dt, freq, decay):
-    # criação das condições iniciais
-    array_x = np.arange(-x_max, x_max+dx, dx)
+def create_wave(
+        x_max: float, y_max: float, t_max: float, 
+        dx: float, dt: float, freq: float, decay: float) -> tuple[np.ndarray]:
+    """
+        Create the initial conditions for the simulation,
+        x_max is the height of the simulated borehole,
+        y_max is the radius of the simulation,
+        t_max is the maximum time for the simulation,
+        dx and dt are the steps in space and time,
+        freq is the frequency of the generated monopole wave,
+        decay is the spatial decay of the generated wave
+    """
+    array_x = np.arange(-x_max/2, (x_max/2)+dx, dx)
     array_y = np.arange(-y_max, y_max+dx, dx)
     array_t = np.arange(0, t_max, dt)
 
@@ -27,8 +39,10 @@ def create_wave(x_max, y_max, t_max, dx, dt, freq, decay):
     array_wave = np.cos(freq*np.sqrt(X**2 + Y**2))*np.exp(-((decay*X)**2))*np.exp(-((decay*Y)**2))
     return array_t, X, Y, array_wave
     
-def plot_f_l_frames(array: np.ndarray):
-    # plots
+def plot_f_l_frames(array: np.ndarray) -> None:
+    """
+        Plot the initial condition and the last frame of the simulation
+    """
     plt.imshow(array[0], cmap = cm.coolwarm)
     plt.title("First frame")
     plt.show()
@@ -37,7 +51,10 @@ def plot_f_l_frames(array: np.ndarray):
     plt.title("Last frame")
     plt.show()
 
-def plot_response(array_t, array, dt, dx):
+def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float, dx: float) -> None:
+    """
+        Generate the receiver responses along the borehole
+    """
     x_pos = int(array.shape[1]/2.5)
     y_pos = int(array.shape[2]/2)
     steps = int(array.shape[1]/80)
@@ -48,12 +65,16 @@ def plot_response(array_t, array, dt, dx):
     for i in range(5):
         x_pos = initial + (steps*i)
         axes[i].plot(array_t, array[:, x_pos, y_pos])
-        axes[i].set_title(f"distancia: {np.abs(x_pos - int(array.shape[1]/2))*dx}")
-    #fig.legend()
+        axes[i].set_title(f"distance from source: {np.abs(x_pos - int(array.shape[1]/2))*dx}")
     fig.tight_layout()
     plt.show()
 
-def animate_simulation(array_t, X, Y, result, num_frames, file_name, ani_type = "2d"):
+def animate_simulation(
+        array_t: np.ndarray, result: np.ndarray, num_frames: float, file_name: str = None, 
+        X: np.ndarray = None, Y: np.ndarray = None, ani_type: str = "2d") -> None:
+    """
+        Create an animation of the wave propagation
+    """
     global ax, kind
 
     if ani_type == "surface":
@@ -88,4 +109,7 @@ def animate_simulation(array_t, X, Y, result, num_frames, file_name, ani_type = 
 
     ani = animation.FuncAnimation(fig, change_plot, frames=num_frames, fargs=(plot_array, plot), interval=1000 / fps, blit=False)
 
-    ani.save(f"./results/{file_name}")
+    if file_name != None:
+        ani.save(f"./results/{file_name}")
+    else:
+        plt.show()

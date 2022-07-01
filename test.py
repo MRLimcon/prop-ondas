@@ -6,7 +6,7 @@ import utils
 dx = 0.1
 dt = 0.01
 t_max = 25
-x_max = 20
+x_max = 40
 y_max = 15
 freq = 2
 decay = 2
@@ -24,4 +24,4 @@ result = solve_wave_equation(
 
 utils.plot_f_l_frames(result)
 utils.plot_response(array_t, result, dt, dx)
-utils.animate_simulation(array_t, X, Y, result, 150, "movie.mp4")
+utils.animate_simulation(array_t, result, 150)
