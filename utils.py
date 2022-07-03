@@ -36,7 +36,7 @@ def create_wave(
     array_t = np.arange(0, t_max, dt)
 
     X, Y = np.meshgrid(array_x, array_y)
-    array_wave = np.cos(freq*np.sqrt(X**2 + Y**2))*np.exp(-((decay*X)**2))*np.exp(-((decay*Y)**2))
+    array_wave = np.cos(freq*np.sqrt(X**2 + Y**2))*np.exp(-(decay*(X**2 + Y**2)))
     return array_t, X, Y, array_wave
     
 def plot_f_l_frames(array: np.ndarray) -> None:

@@ -5,10 +5,10 @@ import utils
 
 # valores finitos para solução
 dx = 0.1
-dt = 0.01
-t_max = 20
+dt = 0.05
+t_max = 25
 x_max = 40
-y_max = 15
+y_max = 25
 freq = 2
 decay = 2
 
@@ -18,19 +18,24 @@ environ_params = {
         "constant": 1.
     },
     "borehole": {
-        "center": [15, 20],
-        "constant": 0.5,
-        "x_distance": 0.5,
-        "y_distance": 20
-    },
-    "solid_square": {
-        "center": [15, 15],
         "constant": 0.7,
-        "x_distance": 20,
-        "y_distance": 0.5
+        "x_distance": 2
+    },
+    "solid_rectangle": {
+        "center": [20, 15],
+        "constant": 0.3,
+        "x_distance": 100,
+        "y_distance": 2
+    },
+    "solid_circle": {
+        "center": [20, 15],
+        "constant": 0.8,
+        "radius": 4,
+        "x_pos": X,
+        "y_pos": Y
     }
 }
-constant = environment_engine.create_environment(array_wave, dx, environ_params)
+constant = environment_engine.create_environment(array_wave, dx, environ_params, True)
 
 # solução da edp
 result = solve_wave_equation(
@@ -42,4 +47,4 @@ result = solve_wave_equation(
 
 utils.plot_f_l_frames(result)
 utils.plot_response(array_t, result, dt, dx)
-utils.animate_simulation(array_t, result, 150, file_name="movie.mp4")
+#utils.animate_simulation(array_t, result, 150, file_name="movie.mp4")

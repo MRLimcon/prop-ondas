@@ -1,13 +1,25 @@
 import numpy as np
+import fortran_bins.utils as utils
+import matplotlib.pyplot as plt
 
 def get_edges(dictionary: dict, steps: float) ->tuple:
-    lenx = int(2*dictionary["x_distance"]/steps) 
-    leny = int(dictionary["y_distance"]/steps)
-    center = [int(dictionary["center"][0]/steps), int(dictionary["center"][1]/steps)]
+    lenx = int(2*dictionary["x_distance"]/steps)
+    if "center" in dictionary:
+        center = [int(dictionary["center"][0]/steps), int(dictionary["center"][1]/steps)]
+        leny = int(dictionary["y_distance"]/steps)
 
-    return lenx, leny, center
+        return lenx, leny, center
+    elif "y_distance" in dictionary:
+        leny = int(dictionary["y_distance"]/steps)
 
-def correct_edges(lenx: float, leny: float, center: tuple[int], environment_shape: np.ndarray) -> list[int]:
+        return lenx, leny
+    else:
+        return lenx
+
+def correct_edges(lenx: float, center: tuple[int], environment_shape: np.ndarray, leny: float = None) -> list[int]:
+    if leny == None:
+        leny = environment_shape[1]
+
     corrected_edges = np.zeros(4, dtype=np.int64)
     left_edge = int(center[0]-(lenx/2))
     right_edge = int(center[0]+(lenx/2))
@@ -40,7 +52,7 @@ def get_indexes(lenx: int, leny: int, steps: float) -> np.ndarray:
     return
 
 
-def create_environment(init_array: np.ndarray, steps, params: dict[str, dict])-> np.ndarray:
+def create_environment(init_array: np.ndarray, steps, params: dict[str, dict], show_env: bool = False)-> np.ndarray:
     """
         Create an environment of velocity constants,
         the environment has the shape of init_array, with steps as spatial steps,
@@ -55,17 +67,30 @@ def create_environment(init_array: np.ndarray, steps, params: dict[str, dict])->
     for shape in params:
         shape_params = params[shape]
 
-        if shape == "solid_square":
+        if shape == "solid_rectangle":
             lenx, leny, center = get_edges(shape_params, steps)
             velocity_constant = shape_params["constant"]
 
-            end_shape = correct_edges(lenx, leny, center, environment.shape)
+            end_shape = correct_edges(lenx, center, environment.shape, leny)
             environment[end_shape[0]:end_shape[1], end_shape[2]:end_shape[3]] = velocity_constant
 
         elif shape == "solid_circle":
-            radius = shape_params["radius"]/steps
+            radius = shape_params["radius"]
+            center = [shape_params["center"][1], shape_params["center"][0]]
             velocity_constant = shape_params["constant"]
-            environment[np.sqrt(((environment*steps)-center)**2) <= radius] = velocity_constant
+            X = shape_params["x_pos"]
+            Y = shape_params["y_pos"]
+
+            environment[
+                utils.utils.make_circle(
+                    lenx=environment.shape[0],
+                    leny=environment.shape[1],
+                    x=X-X[0, 0],
+                    y=Y-Y[0, 0],
+                    center=center,
+                    radius=radius
+                ).astype(dtype=np.bool)
+            ] = velocity_constant
 
         elif shape == "stripes":
             lenx, leny, center = get_edges(shape_params, steps)
@@ -81,10 +106,15 @@ def create_environment(init_array: np.ndarray, steps, params: dict[str, dict])->
             continue
 
     borehole_params = params["borehole"]
-    lenx, leny, center = get_edges(borehole_params, steps)
+    lenx = get_edges(borehole_params, steps)
+    center = [int(init_array.shape[0]/2), int(init_array.shape[1]/2)]
     velocity_constant = borehole_params["constant"]
 
-    end_shape = correct_edges(lenx, leny, center, environment.shape)
+    end_shape = correct_edges(lenx, center, environment.shape)
     environment[end_shape[0]:end_shape[1], :] = velocity_constant
+
+    if show_env:
+        plt.imshow(environment.T)
+        plt.show()
 
     return environment

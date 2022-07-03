@@ -11,7 +11,7 @@ def solve_wave_equation(
     """
         Solution to 2d wave equation, initial_condition is an 2d array of floats,
         constant is the environment conditions for the speed constant,
-        steps is an tuple of the format (dx, dt, ), remember to always put dt < c²/10*dx²,
+        steps is an tuple of the format (dx, dt, ), remember to always put dt < c²/dx²,
         max_time is the max time for the solution, remember to scale with dt to allocate enough memory,
     """
     length = int(max_time/steps[1])
