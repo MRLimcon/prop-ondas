@@ -13,28 +13,50 @@ freq = 2
 decay = 2
 
 array_t, X, Y, array_wave = utils.create_wave(x_max, y_max, t_max, dx, dt, freq, decay)
-environ_params = {
-    "base": {
+environ_params = [
+    {
+        "type": "base",
         "constant": 1.
     },
-    "borehole": {
+    {
+        "type": "borehole",
         "constant": 0.7,
         "x_distance": 2
     },
-    "solid_rectangle": {
+    {
+        "type": "solid_rectangle",
         "center": [20, 15],
         "constant": 0.3,
         "x_distance": 100,
         "y_distance": 2
     },
-    "solid_circle": {
+    {
+        "type": "solid_circle",
         "center": [20, 15],
         "constant": 0.8,
         "radius": 4,
         "x_pos": X,
         "y_pos": Y
+    },
+    {
+        "type": "solid_circle",
+        "center": [15, 20],
+        "constant": 1.3,
+        "radius": 4,
+        "x_pos": X,
+        "y_pos": Y
+    },
+    {
+        "type": "permeable",
+        "center": [27, 12],
+        "constant": 0.3,
+        "x_distance": 100,
+        "y_distance": 5,
+        "matrix_constant": 1.,
+        "liquid_constant": 0.3,
+        "percent": 0.3
     }
-}
+]
 constant = environment_engine.create_environment(array_wave, dx, environ_params, True)
 
 # solução da edp

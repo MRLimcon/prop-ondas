@@ -52,7 +52,7 @@ def get_indexes(lenx: int, leny: int, steps: float) -> np.ndarray:
     return
 
 
-def create_environment(init_array: np.ndarray, steps, params: dict[str, dict], show_env: bool = False)-> np.ndarray:
+def create_environment(init_array: np.ndarray, steps, params: list[dict], show_env: bool = False)-> np.ndarray:
     """
         Create an environment of velocity constants,
         the environment has the shape of init_array, with steps as spatial steps,
@@ -60,12 +60,12 @@ def create_environment(init_array: np.ndarray, steps, params: dict[str, dict], s
     """
     environment = np.zeros(init_array.shape)
 
-    base = params["base"]
+    base = next(param for param in params if param["type"] == "base")
     velocity_constant = base["constant"]
     environment[:,:] = velocity_constant
 
-    for shape in params:
-        shape_params = params[shape]
+    for shape_params in params:
+        shape = shape_params["type"]
 
         if shape == "solid_rectangle":
             lenx, leny, center = get_edges(shape_params, steps)
@@ -101,11 +101,25 @@ def create_environment(init_array: np.ndarray, steps, params: dict[str, dict], s
             lenx, leny, center = get_edges(shape_params, steps)
             matrix_constant = shape_params["matrix_constant"]
             liquid_constant = shape_params["liquid_constant"]
+            percent = shape_params["percent"]
+
+            if percent >= 1.:
+                percent = percent/100
+
+            end_shape = correct_edges(lenx, center, environment.shape, leny)
+            environment[end_shape[0]:end_shape[1], 
+                end_shape[2]:end_shape[3]] = utils.utils.make_permeable(
+                lenx=end_shape[1]-end_shape[0],
+                leny=end_shape[3]-end_shape[2],
+                matrix_const=matrix_constant,
+                liquid_const=liquid_constant,
+                percent = percent
+            )
 
         else:
             continue
 
-    borehole_params = params["borehole"]
+    borehole_params = base = next(param for param in params if param["type"] == "borehole")
     lenx = get_edges(borehole_params, steps)
     center = [int(init_array.shape[0]/2), int(init_array.shape[1]/2)]
     velocity_constant = borehole_params["constant"]
