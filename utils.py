@@ -36,19 +36,21 @@ def create_wave(
     array_t = np.arange(0, t_max, dt)
 
     X, Y = np.meshgrid(array_x, array_y)
-    array_wave = np.cos(freq*np.sqrt(X**2 + Y**2))*np.exp(-((decay*X)**2))*np.exp(-((decay*Y)**2))
+    array_wave = np.cos(freq*np.sqrt(X**2 + Y**2))*np.exp(-(decay*(X**2 + Y**2)))
     return array_t, X, Y, array_wave
     
 def plot_f_l_frames(array: np.ndarray) -> None:
     """
         Plot the initial condition and the last frame of the simulation
     """
-    plt.imshow(array[0], cmap = cm.coolwarm)
+    shw = plt.imshow(array[0], cmap = cm.coolwarm)
     plt.title("First frame")
+    plt.colorbar(shw, cmap = cm.coolwarm)
     plt.show()
 
-    plt.imshow(array[-1], cmap = cm.coolwarm)
+    shw = plt.imshow(array[-1], cmap = cm.coolwarm)
     plt.title("Last frame")
+    plt.colorbar(shw, cmap = cm.coolwarm)
     plt.show()
 
 def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float, dx: float) -> None:
@@ -59,13 +61,13 @@ def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float, dx: float) 
     y_pos = int(array.shape[2]/2)
     steps = int(array.shape[1]/80)
     initial = int(array.shape[1]/2.5)
-    make_fft(array[:, x_pos, y_pos], dt)
+    # make_fft(array[:, x_pos, y_pos], dt)
 
     fig, axes = plt.subplots(nrows=5, ncols=1)
     for i in range(5):
         x_pos = initial + (steps*i)
         axes[i].plot(array_t, array[:, x_pos, y_pos])
-        axes[i].set_title(f"distance from source: {np.abs(x_pos - int(array.shape[1]/2))*dx}")
+        axes[i].set_title(f"Distance from source: {np.abs(x_pos - int(array.shape[1]/2))*dx} m")
     fig.tight_layout()
     plt.show()
 
@@ -85,7 +87,7 @@ def animate_simulation(
     else:
         kind = False
         fig, ax = plt.subplots()
-        plot = ax.imshow(result[0])
+        plot = ax.imshow(result[0], cmap = cm.coolwarm)
     
 
     def change_plot(frame_number, zarray, plot):
@@ -97,7 +99,7 @@ def animate_simulation(
             plot = ax.plot_surface(X, Y, zarray[frame_number, :, :].T,
                 cmap=cm.coolwarm, linewidth=0)
         else:
-            plot = ax.imshow(zarray[frame_number, :, :])
+            plot = ax.imshow(zarray[frame_number, :, :], cmap = cm.coolwarm)
         return plot,
 
     fps = 30
