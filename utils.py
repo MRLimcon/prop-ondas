@@ -43,12 +43,14 @@ def plot_f_l_frames(array: np.ndarray) -> None:
     """
         Plot the initial condition and the last frame of the simulation
     """
-    plt.imshow(array[0], cmap = cm.coolwarm)
+    shw = plt.imshow(array[0], cmap = cm.coolwarm)
     plt.title("First frame")
+    plt.colorbar(shw, cmap = cm.coolwarm)
     plt.show()
 
-    plt.imshow(array[-1], cmap = cm.coolwarm)
+    shw = plt.imshow(array[-1], cmap = cm.coolwarm)
     plt.title("Last frame")
+    plt.colorbar(shw, cmap = cm.coolwarm)
     plt.show()
 
 def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float, dx: float) -> None:
@@ -85,7 +87,7 @@ def animate_simulation(
     else:
         kind = False
         fig, ax = plt.subplots()
-        plot = ax.imshow(result[0])
+        plot = ax.imshow(result[0], cmap = cm.coolwarm)
     
 
     def change_plot(frame_number, zarray, plot):
@@ -97,7 +99,7 @@ def animate_simulation(
             plot = ax.plot_surface(X, Y, zarray[frame_number, :, :].T,
                 cmap=cm.coolwarm, linewidth=0)
         else:
-            plot = ax.imshow(zarray[frame_number, :, :])
+            plot = ax.imshow(zarray[frame_number, :, :], cmap = cm.coolwarm)
         return plot,
 
     fps = 30

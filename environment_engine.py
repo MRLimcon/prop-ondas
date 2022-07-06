@@ -1,6 +1,7 @@
 import numpy as np
 import fortran_bins.utils as utils
 import matplotlib.pyplot as plt
+from matplotlib import cm
 
 def get_edges(dictionary: dict, steps: float) ->tuple:
     lenx = int(2*dictionary["x_distance"]/steps)
@@ -141,7 +142,9 @@ def create_environment(init_array: np.ndarray, steps, params: list[dict], show_e
     environment[end_shape[0]:end_shape[1], :] = velocity_constant
 
     if show_env:
-        plt.imshow(environment.T)
+        shw = plt.imshow(environment.T, cmap = cm.coolwarm)
+        plt.title("Velocity constant on the environment")
+        bar = plt.colorbar(shw, cmap = cm.coolwarm)
         plt.show()
 
     return environment

@@ -28,7 +28,7 @@ environ_params = [
         "center": [20, 15],
         "constant": 0.3,
         "x_distance": 100,
-        "y_distance": 2
+        "y_distance": 5
     },
     {
         "type": "solid_circle",
@@ -41,7 +41,7 @@ environ_params = [
     {
         "type": "solid_circle",
         "center": [15, 20],
-        "constant": 1.3,
+        "constant": 0.5,
         "radius": 4,
         "x_pos": X,
         "y_pos": Y
@@ -64,7 +64,7 @@ environ_params = [
         "y_distance": 10,
         "1_constant": 1.,
         "2_constant": 0.3,
-        "height": 0.3,
+        "height": 0.5,
     }
 ]
 constant = environment_engine.create_environment(array_wave, dx, environ_params, True)
