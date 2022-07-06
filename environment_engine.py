@@ -94,8 +94,21 @@ def create_environment(init_array: np.ndarray, steps, params: list[dict], show_e
 
         elif shape == "stripes":
             lenx, leny, center = get_edges(shape_params, steps)
+            end_shape = correct_edges(lenx, center, environment.shape, leny)
+            height = int(shape_params["height"]/steps)
             stripe1_constant = shape_params["1_constant"]
             stripe2_constant = shape_params["2_constant"]
+            layers = int(leny/height) + 1
+
+            environment[end_shape[0]:end_shape[1], 
+                end_shape[2]:end_shape[3]] = utils.utils.make_stripes(
+                lenx=end_shape[1]-end_shape[0],
+                leny=end_shape[3]-end_shape[2],
+                matrix_const=stripe1_constant,
+                liquid_const=stripe2_constant,
+                height=height,
+                layers=layers
+            )
 
         elif shape == "permeable":
             lenx, leny, center = get_edges(shape_params, steps)

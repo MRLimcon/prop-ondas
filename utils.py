@@ -59,13 +59,13 @@ def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float, dx: float) 
     y_pos = int(array.shape[2]/2)
     steps = int(array.shape[1]/80)
     initial = int(array.shape[1]/2.5)
-    make_fft(array[:, x_pos, y_pos], dt)
+    # make_fft(array[:, x_pos, y_pos], dt)
 
     fig, axes = plt.subplots(nrows=5, ncols=1)
     for i in range(5):
         x_pos = initial + (steps*i)
         axes[i].plot(array_t, array[:, x_pos, y_pos])
-        axes[i].set_title(f"distance from source: {np.abs(x_pos - int(array.shape[1]/2))*dx}")
+        axes[i].set_title(f"Distance from source: {np.abs(x_pos - int(array.shape[1]/2))*dx} m")
     fig.tight_layout()
     plt.show()
 

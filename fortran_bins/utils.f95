@@ -23,6 +23,35 @@ contains
 
     end function make_permeable
 
+    function make_stripes(lenx, leny, matrix_const, liquid_const, height, layers) result(array)
+        integer, intent(in) :: lenx, leny, layers, height
+        real, intent(in) :: matrix_const, liquid_const
+        real :: array(lenx, 0:leny-1)
+        integer :: i
+
+        do concurrent (i = 0: layers-1) 
+            block
+                integer :: min, max
+
+                min = i*height
+                max = (i+1)*height
+
+                if (max > leny-1) then
+                    max = leny-1
+                end if 
+
+                if (mod(i, 2) == 0) then
+                    array(:, min: max) = matrix_const
+                else 
+                    array(:, min: max) = liquid_const
+                end if
+
+            end block
+
+        end do
+
+    end function make_stripes
+
     function make_circle(lenx, leny, X, Y, center, radius) result(result_array)
         integer, intent(in) :: lenx, leny
         real, intent(in) :: X(lenx, leny), Y(lenx, leny), radius, center(2)
