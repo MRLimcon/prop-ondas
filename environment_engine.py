@@ -145,6 +145,7 @@ def create_environment(init_array: np.ndarray, steps, params: list[dict], show_e
         shw = plt.imshow(environment.T, cmap = cm.coolwarm)
         plt.title("Velocity constant on the environment")
         bar = plt.colorbar(shw, cmap = cm.coolwarm)
+        plt.tight_layout()
         plt.show()
 
     return environment
