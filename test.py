@@ -6,11 +6,11 @@ import utils
 # valores finitos para solução
 dx = 0.1
 dt = 0.05
-t_max = 25
+t_max = 12
 x_max = 40
 y_max = 25
-freq = 2
-decay = 2
+freq = 4
+decay = 3
 
 array_t, X, Y, array_wave = utils.create_wave(x_max, y_max, t_max, dx, dt, freq, decay)
 environ_params = [
