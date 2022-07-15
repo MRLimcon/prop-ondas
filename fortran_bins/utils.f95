@@ -63,6 +63,16 @@ contains
 
     end function make_circle
 
+
+    function calc_semblance(data, lenx, leny, T, s, dt) result(result_array)
+        integer, intent(in) :: lenx, leny
+        real, intent(in) :: data(lenx, leny), T, s, dt
+        integer :: m, i, reso
+        real :: a, p, time, temp, step, result_array, numerador, denominador
+
+
+    end function calc_semblance
+
 end module utils
 
 module perlin

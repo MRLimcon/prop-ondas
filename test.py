@@ -1,28 +1,33 @@
 import numpy as np
 from calculos import solve_wave_equation
 import environment_engine
+import matplotlib.pyplot as plt
 import utils
 
 # valores finitos para solução
-dx = 0.1
-dt = 0.05
-t_max = 12
-x_max = 40
-y_max = 25
-freq = 4
+dx = 0.05
+dt = 0.001
+t_max = 5
+x_max = 10
+y_max = 5
+freq = 1
 decay = 3
 
 array_t, X, Y, array_wave = utils.create_wave(x_max, y_max, t_max, dx, dt, freq, decay)
+excited_wave = utils.generate_excited_wave(t_max, dt, freq)
+
 environ_params = [
     {
         "type": "base",
-        "constant": 1.
+        "constant": 1
     },
     {
         "type": "borehole",
-        "constant": 0.7,
-        "x_distance": 2
-    },
+        "constant": 0.5,
+        "x_distance": 0.1
+    }
+]
+"""
     {
         "type": "solid_rectangle",
         "center": [20, 15],
@@ -66,12 +71,15 @@ environ_params = [
         "2_constant": 0.3,
         "height": 0.5,
     }
+
 ]
+"""
 constant = environment_engine.create_environment(array_wave, dx, environ_params, True)
 
 # solução da edp
 result = solve_wave_equation(
     array_wave, 
+    excited_wave,
     [dx, dt], 
     t_max, 
     environment=constant

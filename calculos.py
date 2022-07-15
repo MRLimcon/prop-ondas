@@ -4,6 +4,7 @@ import numpy as np
 # função para solução da edp de onda
 def solve_wave_equation(
     initial_condition: np.ndarray,
+    excited_wave: float,
     steps: tuple[float],
     max_time: float,
     environment: float = 1.
@@ -20,7 +21,7 @@ def solve_wave_equation(
     constant = (environment**2)/(steps[0]**2)
 
     array = calculations.calc.free_wave_equation_2d(
-        ic=initial_condition,
+        ew=excited_wave,
         c=constant,
         sol_len=length,
         dt=steps[1],

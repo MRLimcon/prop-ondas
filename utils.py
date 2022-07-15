@@ -4,6 +4,11 @@ from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
+def generate_excited_wave(t_max: float, dt: float, freq: float)-> np.ndarray:
+    t_vals = np.arange(0, t_max, dt)
+    exponent = np.exp(-(np.pi**2)*(freq**2)*(t_vals**2))
+    return (1-(2*(np.pi**2)*(freq**2)*(t_vals**2)))*exponent
+
 def make_fft(values: np.ndarray, timestep: float) -> None:
     """
         Visualizes the frequency peaks for the values
@@ -17,7 +22,31 @@ def make_fft(values: np.ndarray, timestep: float) -> None:
     filters = [fft_results1[peak] > 0.3 and freq[peak] >= 0 for peak in peaks1]
     peaks1 = peaks1[filters]
 
-    print(f"As frequências de pico para o sensor são {freq[peaks1]}")
+    # print(f"As frequências de pico para o sensor são {freq[peaks1]}")
+
+def detect_signals(data: np.ndarray):
+    new_data = (data-np.average(data))/np.max(data)
+    len_data = len(data)
+    starts = []
+    ends = []
+
+    for i, value in enumerate(new_data):
+        if all(np.abs(val) >= 0.3 for val in new_data[i:i+3]):
+            if len(starts) <= len(ends):
+                starts.append(i)
+        else:
+            if len(ends) < len(starts):
+                ending_integers = len_data - i - 1
+                if ending_integers > 15 and all(np.abs(value) < 0.2 for value in new_data[i:i+10]):
+                    ends.append(i)
+
+        if i == len_data-1 and len(ends) < len(starts):
+            ends.append(i)
+
+    if len(starts) >= 2 and len(ends) >= 2:
+        return starts[:2], ends[:2]
+    else:
+        return None
 
 def create_wave(
         x_max: float, y_max: float, t_max: float, 
@@ -53,22 +82,49 @@ def plot_f_l_frames(array: np.ndarray) -> None:
     plt.colorbar(shw, cmap = cm.coolwarm)
     plt.show()
 
-def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float, dx: float) -> None:
+def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float, dx: float, distance:float = 0.5) -> None:
     """
         Generate the receiver responses along the borehole
     """
-    x_pos = int(array.shape[1]/2.5)
     y_pos = int(array.shape[2]/2)
-    steps = int(array.shape[1]/80)
-    initial = int(array.shape[1]/2.5)
-    # make_fft(array[:, x_pos, y_pos], dt)
+    steps = int(distance/dx)
+    initial = int(array.shape[1]/2) - 1
+    starts = []
+    ends = []
+    signal_data = []
+    dists = []
 
     fig, axes = plt.subplots(nrows=5, ncols=1)
     for i in range(5):
+        x_pos = initial - (steps*i)
+        dist = np.abs(x_pos - int(array.shape[1]/2))*dx
+        new_values = detect_signals(array[:, x_pos, y_pos])
+
+        if new_values != None:
+            starts.append(new_values[0])
+            ends.append(new_values[1])
+            signal_data.append(array[:, x_pos, y_pos])
+            dists.append(dist)
+
         make_fft(array[:, x_pos, y_pos], dt)
-        x_pos = initial + (steps*i)
+
         axes[i].plot(array_t, array[:, x_pos, y_pos])
-        axes[i].set_title(f"Distance from source: {np.abs(x_pos - int(array.shape[1]/2))*dx} m")
+        axes[i].set_title(f"Distance from source: {dist} m")
+        
+    starts = np.array(starts)
+    ends = np.array(ends)
+    signal_data = np.array(signal_data)
+    dists = np.array(dists)
+
+    #print("First wave slowness:")
+    #print(np.average(np.abs((starts[:-1, 0]-starts[-1, 0])*dt / (dists[:-1]-dists[-1]))))
+    #print("Stoneley wave slowness:")
+    #print(np.average(np.abs((starts[:-1, 1]-starts[-1, 1])*dt / (dists[:-1]-dists[-1]))))
+
+    #print("Timestamps:")
+    #print(starts*dt)
+    #print(ends*dt)
+
     fig.tight_layout()
     plt.show()
 

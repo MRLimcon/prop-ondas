@@ -3,16 +3,19 @@ module calc
     
 contains
 
-    function free_wave_equation_2d(ic_lenx, ic_leny, sol_len, c, ic, dt) result(array)
+    function free_wave_equation_2d(ic_lenx, ic_leny, sol_len, c, ew, dt) result(array)
         implicit none
 
         integer, intent(in) :: ic_lenx, ic_leny, sol_len
-        real, intent(in) :: ic(ic_lenx, ic_leny), c(ic_lenx, ic_leny), dt
+        real, intent(in) :: c(ic_lenx, ic_leny), dt, ew(sol_len)
         real :: array(ic_lenx, ic_leny, sol_len), acceleration(ic_lenx, ic_leny), velocity(ic_lenx, ic_leny)
-        integer :: i
+        integer :: i, half_lenx, half_leny
 
-        array(:, :, 1) = ic
+        array = 0
         velocity = 0
+        half_lenx = ic_lenx/2
+        half_leny = ic_leny/2
+        array(half_lenx, half_leny, 1) = ew(1)
 
         do i = 2, sol_len, 1
             acceleration = 0
@@ -32,6 +35,7 @@ contains
 
             velocity = velocity + (acceleration*dt)
             array(:, :, i) = array(:, :, i-1) + (velocity*dt)
+            array(half_lenx, half_leny, i) = ew(i)
 
         end do
 
