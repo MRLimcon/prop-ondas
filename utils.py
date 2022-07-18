@@ -4,17 +4,39 @@ from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-def generate_excited_wave(t_max: float, dt: float, freq: float)-> np.ndarray:
-    t_vals = np.arange(0, t_max, dt)
-    exponent = np.exp(-(np.pi**2)*(freq**2)*(t_vals**2))
-    return (1-(2*(np.pi**2)*(freq**2)*(t_vals**2)))*exponent
+def generate_excited_wave(t_max: float, dt: float, freq: float, type: str = "ricker")-> np.ndarray:
+    if type == "ricker":
+        t_vals = np.arange(-t_max, t_max, dt)
+        exponent = np.exp(-(np.pi**2)*(freq**2)*(t_vals**2))
+        result = (1-(2*(np.pi**2)*(freq**2)*(t_vals**2)))*exponent
+        for i in range(len(result)):
+            if all(np.abs(val) <= np.max(result)/50 for val in result[:i]):
+                result = result[i:]
+            if all(np.abs(val) <= np.max(result)/50 for val in result[i:]):
+                result = result[:i]
 
-def make_fft(values: np.ndarray, timestep: float) -> None:
+    else:
+        t_vals = np.arange(0, t_max, dt)
+        result = np.sin(2*np.pi*freq*t_vals)
+
+    return result
+
+def make_fft(data: np.ndarray, timestep: float, dist: float) -> None:
     """
         Visualizes the frequency peaks for the values
     """
+    new_data = (data-np.average(data))/np.max(data)
+    starts = 0
+
+    for i, value in enumerate(new_data):
+        if all(np.abs(val) >= 0.3 for val in new_data[i:i+3]):
+            starts = i
+            break
+
+    values = new_data[starts:]
+
     n1 = len(values)
-    fft_results1 = abs(np.fft.fft(values))
+    fft_results1 = np.abs(np.fft.fft(values))
     fft_results1 = fft_results1 / np.max(fft_results1)
     freq = np.fft.fftfreq(n1, d=timestep)
 
@@ -22,7 +44,8 @@ def make_fft(values: np.ndarray, timestep: float) -> None:
     filters = [fft_results1[peak] > 0.3 and freq[peak] >= 0 for peak in peaks1]
     peaks1 = peaks1[filters]
 
-    # print(f"As frequências de pico para o sensor são {freq[peaks1]}")
+    print(f"Starts at {starts*timestep} s and distance is {dist}")
+    print(f"Frequencies are {freq[peaks1]}")
 
 def detect_signals(data: np.ndarray):
     new_data = (data-np.average(data))/np.max(data)
@@ -82,7 +105,8 @@ def plot_f_l_frames(array: np.ndarray) -> None:
     plt.colorbar(shw, cmap = cm.coolwarm)
     plt.show()
 
-def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float, dx: float, distance:float = 0.5) -> None:
+def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float, 
+    dx: float, distance:float = 0.5, print_freqs: bool = False) -> None:
     """
         Generate the receiver responses along the borehole
     """
@@ -106,7 +130,8 @@ def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float, dx: float, 
             signal_data.append(array[:, x_pos, y_pos])
             dists.append(dist)
 
-        make_fft(array[:, x_pos, y_pos], dt)
+        if print_freqs:
+            make_fft(array[:, x_pos, y_pos], dt, dist)
 
         axes[i].plot(array_t, array[:, x_pos, y_pos])
         axes[i].set_title(f"Distance from source: {dist} m")

@@ -6,28 +6,28 @@ import utils
 
 # valores finitos para solução
 dx = 0.05
-dt = 0.001
-t_max = 5
-x_max = 10
-y_max = 5
-freq = 1
+dt = 0.01
+t_max = 10
+x_max = 35
+y_max = 10
+freq = 10
 decay = 3
 
 array_t, X, Y, array_wave = utils.create_wave(x_max, y_max, t_max, dx, dt, freq, decay)
-excited_wave = utils.generate_excited_wave(t_max, dt, freq)
+excited_wave = utils.generate_excited_wave(t_max, dt, freq, type="normal")
 
 environ_params = [
     {
         "type": "base",
-        "constant": 1
+        "constant": 1.5
     },
     {
         "type": "borehole",
-        "constant": 0.5,
-        "x_distance": 0.1
+        "constant": 1.,
+        "x_distance": 1.# 0.1
     }
 ]
-"""
+""",
     {
         "type": "solid_rectangle",
         "center": [20, 15],
@@ -56,11 +56,13 @@ environ_params = [
         "center": [27, 12],
         "constant": 0.3,
         "x_distance": 100,
-        "y_distance": 5,
+        "y_distance": 100,
         "matrix_constant": 1.,
         "liquid_constant": 0.3,
         "percent": 0.3
-    },
+    }
+]
+,
     {
         "type": "stripes",
         "center": [7, 30],
@@ -71,9 +73,7 @@ environ_params = [
         "2_constant": 0.3,
         "height": 0.5,
     }
-
-]
-"""
+]"""
 constant = environment_engine.create_environment(array_wave, dx, environ_params, True)
 
 # solução da edp
@@ -86,5 +86,5 @@ result = solve_wave_equation(
 )
 
 utils.plot_f_l_frames(result)
-utils.plot_response(array_t, result, dt, dx)
-#utils.animate_simulation(array_t, result, 150, file_name="movie.mp4")
+utils.plot_response(array_t, result, dt, dx, print_freqs=True)
+# utils.animate_simulation(array_t, result, 150, file_name="movie.mp4")

@@ -22,6 +22,7 @@ def solve_wave_equation(
 
     array = calculations.calc.free_wave_equation_2d(
         ew=excited_wave,
+        ew_len=len(excited_wave),
         c=constant,
         sol_len=length,
         dt=steps[1],
