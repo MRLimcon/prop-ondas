@@ -73,6 +73,10 @@ def create_environment(init_array: np.ndarray, steps, params: list[dict], show_e
             velocity_constant = shape_params["constant"]
 
             end_shape = correct_edges(lenx, center, environment.shape, leny)
+
+            if end_shape[0] == end_shape[1] or end_shape[2] == end_shape[3]:
+                continue
+
             environment[end_shape[0]:end_shape[1], end_shape[2]:end_shape[3]] = velocity_constant
 
         elif shape == "solid_circle":
@@ -101,6 +105,9 @@ def create_environment(init_array: np.ndarray, steps, params: list[dict], show_e
             stripe2_constant = shape_params["2_constant"]
             layers = int(leny/height) + 1
 
+            if end_shape[0] == end_shape[1] or end_shape[2] == end_shape[3]:
+                continue
+            
             environment[end_shape[0]:end_shape[1], 
                 end_shape[2]:end_shape[3]] = utils.utils.make_stripes(
                 lenx=end_shape[1]-end_shape[0],
@@ -121,6 +128,10 @@ def create_environment(init_array: np.ndarray, steps, params: list[dict], show_e
                 percent = percent/100
 
             end_shape = correct_edges(lenx, center, environment.shape, leny)
+
+            if end_shape[0] == end_shape[1] or end_shape[2] == end_shape[3]:
+                continue
+            
             environment[end_shape[0]:end_shape[1], 
                 end_shape[2]:end_shape[3]] = utils.utils.make_permeable(
                 lenx=end_shape[1]-end_shape[0],

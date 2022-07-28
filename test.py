@@ -7,27 +7,34 @@ import utils
 # valores finitos para solução
 dx = 0.05
 dt = 0.01
-t_max = 10
-x_max = 35
+t_max = 7
+x_max = 30
 y_max = 10
-freq = 10
-decay = 3
+freq = 2
 
-array_t, X, Y, array_wave = utils.create_wave(x_max, y_max, t_max, dx, dt, freq, decay)
+array_t, X, Y, array_wave = utils.create_wave(x_max, y_max, t_max, dx, dt)
 excited_wave = utils.generate_excited_wave(t_max, dt, freq, type="normal")
 
 environ_params = [
     {
         "type": "base",
-        "constant": 1.5
+        "constant": 1
     },
     {
         "type": "borehole",
-        "constant": 1.,
+        "constant": 0.5,
         "x_distance": 1.# 0.1
-    }
-]
-""",
+    },
+    {
+        "type": "permeable",
+        "center": [27, 12],
+        "constant": 0.3,
+        "x_distance": 100,
+        "y_distance": 100,
+        "matrix_constant": 1.,
+        "liquid_constant": 0.5,
+        "percent": 0.3
+    },
     {
         "type": "solid_rectangle",
         "center": [20, 15],
@@ -60,9 +67,7 @@ environ_params = [
         "matrix_constant": 1.,
         "liquid_constant": 0.3,
         "percent": 0.3
-    }
-]
-,
+    },
     {
         "type": "stripes",
         "center": [7, 30],
@@ -73,7 +78,7 @@ environ_params = [
         "2_constant": 0.3,
         "height": 0.5,
     }
-]"""
+]
 constant = environment_engine.create_environment(array_wave, dx, environ_params, True)
 
 # solução da edp

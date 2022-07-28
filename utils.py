@@ -11,13 +11,20 @@ def generate_excited_wave(t_max: float, dt: float, freq: float, type: str = "ric
         result = (1-(2*(np.pi**2)*(freq**2)*(t_vals**2)))*exponent
         for i in range(len(result)):
             if all(np.abs(val) <= np.max(result)/50 for val in result[:i]):
+                t_vals = t_vals[i:]
                 result = result[i:]
             if all(np.abs(val) <= np.max(result)/50 for val in result[i:]):
                 result = result[:i]
+                t_vals = t_vals[:i]
 
     else:
         t_vals = np.arange(0, t_max, dt)
         result = np.sin(2*np.pi*freq*t_vals)
+
+    # plt.plot(t_vals, result)
+    # plt.xlabel("Tempo (s)")
+    # plt.ylabel("Valor da oscilação")
+    # plt.show()
 
     return result
 
@@ -72,8 +79,7 @@ def detect_signals(data: np.ndarray):
         return None
 
 def create_wave(
-        x_max: float, y_max: float, t_max: float, 
-        dx: float, dt: float, freq: float, decay: float) -> tuple[np.ndarray]:
+        x_max: float, y_max: float, t_max: float, dx: float, dt: float) -> tuple[np.ndarray]:
     """
         Create the initial conditions for the simulation,
         x_max is the height of the simulated borehole,
@@ -88,7 +94,7 @@ def create_wave(
     array_t = np.arange(0, t_max, dt)
 
     X, Y = np.meshgrid(array_x, array_y)
-    array_wave = np.cos(freq*np.sqrt(X**2 + Y**2))*np.exp(-(decay*(X**2 + Y**2)))
+    array_wave = np.zeros(X.shape)
     return array_t, X, Y, array_wave
     
 def plot_f_l_frames(array: np.ndarray) -> None:
