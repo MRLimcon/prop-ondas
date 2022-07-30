@@ -44,90 +44,90 @@ contains
 
     end function free_wave_equation_2d
 
-    function isotropic_elastodynamic_2d(ic_lenx, ic_leny, sol_len, mu, lambda, rho, ic, dt) result(array)
+    function elastodynamic_2d(ic_lenx, ic_leny, sol_len, ew, ew_len, mu, lambda, rho, ic, dt) result(array)
         implicit none
 
-        integer, intent(in) :: ic_lenx, ic_leny, sol_len
-        real, intent(in) :: ic(ic_lenx, ic_leny), mu(ic_lenx, ic_leny), dt
+        integer, intent(in) :: ic_lenx, ic_leny, sol_len, ew_len
+        real, intent(in) :: ic(ic_lenx, ic_leny, 2), mu(ic_lenx, ic_leny), dt, ew(ew_len, 2)
         real, intent(in) :: lambda(ic_lenx, ic_leny), rho(ic_lenx, ic_leny)
-        real :: array(ic_lenx, ic_leny, sol_len), acceleration(ic_lenx, ic_leny), velocity(ic_lenx, ic_leny)
-        integer :: i
+        real :: grad(ic_lenx, ic_leny), laplacian(ic_lenx, ic_leny), derivative(ic_lenx, ic_leny, 2)
+        real :: array(sol_len, ic_lenx, ic_leny, 2), acceleration(ic_lenx, ic_leny, 2), velocity(ic_lenx, ic_leny, 2)
+        integer :: i, half_lenx, half_leny
 
-        array(:, :, 1) = ic
+        array(1, :, :, :) = ic
         velocity = 0
+        half_lenx = ic_lenx/2
+        half_leny = ic_leny/2
+        array(1, half_lenx, half_leny, :) = ew(1, :)
 
         do i = 2, sol_len, 1
             acceleration = 0
+            laplacian = 0
+            grad = 0
+            derivative = 0
 
-            acceleration(1, :) = ( array(2, :, i-1) - array(1, :, i-1) )
-            acceleration(ic_lenx, :) = (array(ic_lenx-1, :, i-1) - array(ic_lenx, :, i-1))
-            acceleration(2:ic_lenx-1, :) = array(3:ic_lenx, :, i-1) + array(1:ic_lenx-2, :, i-1) &
-                - (2*array(2:ic_lenx-1, :, i-1))
+            !taking the laplacian in u
+            laplacian(1, :) = ( array(i-1, 2, :, 1) - array(i-1, 1, :, 1) )
+            laplacian(ic_lenx, :) = (array(i-1, ic_lenx-1, :, 1) - array(i-1, ic_lenx, :, 1))
+            laplacian(2:ic_lenx-1, :) = array(i-1, 3:ic_lenx, :, 1) + array(i-1, 1:ic_lenx-2, :, 1) &
+                - (2*array(i-1, 2:ic_lenx-1, :, 1))
 
-            acceleration(:, 1) = acceleration(:, 1) + ( array(:, 2, i-1) - array(:, 1, i-1) )
-            acceleration(:, ic_leny) = acceleration(:, ic_leny) & 
-                + (array(:, ic_leny-1, i-1) - array(:, ic_leny, i-1))
-            acceleration(:, 2:ic_leny-1) = acceleration(:, 2:ic_leny-1) + array(:, 3:ic_leny, i-1) &
-                + array(:, 1:ic_leny-2, i-1) - (2*array(:, 2:ic_leny-1, i-1))
+            laplacian(:, 1) = laplacian(:, 1) + ( array(i-1, :, 2, 1) - array(i-1, :, 1, 1) )
+            laplacian(:, ic_leny) = laplacian(:, ic_leny) & 
+                + (array(i-1, :, ic_leny-1, 1) - array(i-1, :, ic_leny, 1))
+            laplacian(:, 2:ic_leny-1) = laplacian(:, 2:ic_leny-1) + array(i-1, :, 3:ic_leny, 1) &
+                + array(i-1, :, 1:ic_leny-2, 1) - (2*array(i-1, :, 2:ic_leny-1, 1))
 
-            acceleration = (acceleration*mu) + (acceleration*(mu + lambda))
-            acceleration = acceleration/rho
+            acceleration(:, :, 1) = mu*laplacian
+            laplacian = 0
 
-            velocity = velocity + (acceleration*dt)
-            array(:, :, i) = array(:, :, i-1) + (velocity*dt)
+            !taking the laplacian in v
+            laplacian(1, :) = ( array(i-1, 2, :, 2) - array(i-1, 1, :, 2) )
+            laplacian(ic_lenx, :) = (array(i-1, ic_lenx-1, :, 2) - array(i-1, ic_lenx, :, 2))
+            laplacian(2:ic_lenx-1, :) = array(i-1, 3:ic_lenx, :, 2) + array(i-1, 1:ic_lenx-2, :, 2) &
+                - (2*array(i-1, 2:ic_lenx-1, :, 1))
 
-        end do
+            laplacian(:, 1) = laplacian(:, 1) + ( array(i-1, :, 2, 2) - array(i-1, :, 1, 2) )
+            laplacian(:, ic_leny) = laplacian(:, ic_leny) & 
+                + (array(i-1, :, ic_leny-1, 2) - array(i-1, :, ic_leny, 2))
+            laplacian(:, 2:ic_leny-1) = laplacian(:, 2:ic_leny-1) + array(i-1, :, 3:ic_leny, 2) &
+                + array(i-1, :, 1:ic_leny-2, 2) - (2*array(i-1, :, 2:ic_leny-1, 2))
 
-    end function isotropic_elastodynamic_2d
+            acceleration(:, :, 2) = mu*laplacian
 
-    function anisotropic_elastodynamic_2d(ic_lenx, ic_leny, sol_len, c, ic, rho, dt) result(array)
-        implicit none
+            ! taking the divergence
+            grad(1, :) = ( array(i-1, 2, :, 1) - array(i-1, 1, :, 1) )
+            grad(ic_lenx, :) = -(array(i-1, ic_lenx-1, :, 1) - array(i-1, ic_lenx, :, 1))
+            grad(2:ic_lenx-1, :) = (array(i-1, 3:ic_lenx, :, 1) - array(i-1, 1:ic_lenx-2, :, 1))/2
 
-        integer, intent(in) :: ic_lenx, ic_leny, sol_len
-        real, intent(in) :: ic(ic_lenx, ic_leny), c(ic_lenx, ic_leny, 2, 2), rho(ic_lenx, ic_leny), dt
-        real :: array(ic_lenx, ic_leny, sol_len), local_acceleration(ic_lenx, ic_leny, 2)
-        real :: acceleration(ic_lenx, ic_leny), final_acceleration(ic_lenx, ic_leny), velocity(ic_lenx, ic_leny)
-        integer :: i, j, k
+            grad(:, 1) = grad(:, 1) + ( array(i-1, :, 2, 2) - array(i-1, :, 1, 2) )
+            grad(:, ic_leny) = grad(:, ic_leny) & 
+                - (array(i-1, :, ic_leny-1, 2) - array(i-1, :, ic_leny, 2))
+            grad(:, 2:ic_leny-1) = grad(:, 2:ic_leny-1) + (array(i-1, :, 3:ic_leny, 2) &
+                - array(i-1, :, 1:ic_leny-2, 2))/2
+            
+            ! differentiating in x and y, for u and v
+            derivative(1, :, 1) = ( grad(2, :) - grad(1, :) )
+            derivative(ic_lenx, :, 1) = -(grad(ic_lenx-1, :) - grad(ic_lenx, :))
+            derivative(2:ic_lenx-1, :, 1) = (grad(3:ic_lenx, :) - grad(1:ic_lenx-2, :))/2
 
-        array(:, :, 1) = ic
-        velocity = 0
+            derivative(:, 1, 2) = ( grad(:, 2) - grad(:, 1) )
+            derivative(:, ic_leny, 2) = -(grad(:, ic_leny-1) - grad(:, ic_leny))
+            derivative(:, 2:ic_leny-1, 2) = (grad(:, 3:ic_leny) - grad(:, 1:ic_leny-2))/2
 
-        do i = 2, sol_len, 1
-            acceleration = 0.
-            final_acceleration = 0.
-            local_acceleration = 0.
+            ! integrating
+            acceleration(:, :, 1) = acceleration(:, :, 1) + (derivative(:, :, 1)*(mu + lambda))
+            acceleration(:, :, 2) = acceleration(:, :, 2) + (derivative(:, :, 2)*(mu + lambda))
 
-            local_acceleration(1, :, 1) = ( array(2, :, i-1) - array(1, :, i-1) )
-            local_acceleration(ic_lenx, :, 1) = -(array(ic_lenx-1, :, i-1) - array(ic_lenx, :, i-1))
-            local_acceleration(2:ic_lenx-1, :, 1) = (array(3:ic_lenx, :, i-1) - array(1:ic_lenx-2, :, i-1))/2 
+            velocity = velocity + (acceleration*dt/rho)
+            array(i, :, :, :) = array(i-1, :, :, :) + (velocity*dt)
 
-            local_acceleration(:, 1, 2) = ( array(:, 2, i-1) - array(:, 1, i-1) )
-            local_acceleration(:, ic_leny, 2) = -(array(:, ic_leny-1, i-1) - array(:, ic_leny, i-1))
-            local_acceleration(:, 2:ic_leny-1, 2) = (array(:, 3:ic_leny, i-1) - array(:, 1:ic_leny-2, i-1))/2
-
-            do concurrent (j = 1: ic_lenx)
-                do k = 1, ic_leny
-                    acceleration(j, k) = sum(local_acceleration(j, k, 1)*c(j, k, 1, :)) + &
-                        sum(local_acceleration(j, k, 2)*c(j, k, 2, :))
-                end do
-            end do
-
-            final_acceleration(1, :) = ( acceleration(2, :) - acceleration(1, :) )
-            final_acceleration(ic_lenx, :) = -(acceleration(ic_lenx-1, :) - acceleration(ic_lenx, :))
-            final_acceleration(2:ic_lenx-1, :) = (acceleration(3:ic_lenx, :) - acceleration(1:ic_lenx-2, :))/2 
-
-            final_acceleration(:, 1) = final_acceleration(:, 1) + &
-                ( acceleration(:, 2) - acceleration(:, 1) )
-            final_acceleration(:, ic_leny) = final_acceleration(:, ic_leny) - &
-                (acceleration(:, ic_leny-1) - acceleration(:, ic_leny))
-            final_acceleration(:, 2:ic_leny-1) = final_acceleration(:, 2:ic_leny-1) + &
-                (acceleration(:, 3:ic_leny) - acceleration(:, 1:ic_leny-2))/2
-
-            velocity = velocity + (final_acceleration*dt/rho)
-            array(:, :, i) = array(:, :, i-1) + (velocity*dt)
+            if ( i <= ew_len ) then
+                array(i, half_lenx, half_leny, :) = ew(i, :)
+            end if
 
         end do
 
-    end function anisotropic_elastodynamic_2d
+    end function elastodynamic_2d
 
 end module calc
