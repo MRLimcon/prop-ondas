@@ -29,4 +29,5 @@ def solve_wave_equation(
         ic_lenx=ic_lenx,
         ic_leny=ic_leny
     )
-    return array.T
+    array = array.T
+    return array

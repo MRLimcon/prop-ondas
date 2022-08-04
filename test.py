@@ -13,7 +13,7 @@ y_max = 10
 freq = 2
 
 array_t, X, Y, array_wave = utils.create_wave(x_max, y_max, t_max, dx, dt)
-excited_wave = utils.generate_excited_wave(t_max, dt, freq, type="normal")
+excited_wave = utils.generate_excited_wave(t_max, dt, freq, type="ricker")
 
 environ_params = [
     {
@@ -42,6 +42,16 @@ environ_params = [
         "x_distance": 100,
         "y_distance": 5
     },
+    #{
+    #    "type": "permeable",
+    #    "center": [27, 12],
+    #    "constant": 0.3,
+    #    "x_distance": 100,
+    #    "y_distance": 100,
+    #    "matrix_constant": 1.,
+    #    "liquid_constant": 0.3,
+    #    "percent": 0.3
+    #},
     {
         "type": "solid_circle",
         "center": [20, 15],
@@ -57,16 +67,6 @@ environ_params = [
         "radius": 4,
         "x_pos": X,
         "y_pos": Y
-    },
-    {
-        "type": "permeable",
-        "center": [27, 12],
-        "constant": 0.3,
-        "x_distance": 100,
-        "y_distance": 100,
-        "matrix_constant": 1.,
-        "liquid_constant": 0.3,
-        "percent": 0.3
     },
     {
         "type": "stripes",

@@ -66,6 +66,8 @@ contains
             grad = 0
             derivative = 0
 
+            ! u_tt = (lambda + mu)*(divergent . (u, v))_x + (mu)*(laplacian u)
+            ! v_tt = (lambda + mu)*(divergent . (u, v))_v + (mu)*(laplacian v)
             !taking the laplacian in u
             laplacian(1, :) = ( array(i-1, 2, :, 1) - array(i-1, 1, :, 1) )
             laplacian(ic_lenx, :) = (array(i-1, ic_lenx-1, :, 1) - array(i-1, ic_lenx, :, 1))
