@@ -31,3 +31,39 @@ def solve_wave_equation(
     )
     array = array.T
     return array
+
+def solve_elastodynamic_equation(
+    initial_condition: np.ndarray,
+    excited_wave: float,
+    steps: tuple[float],
+    mu,
+    lambda_1,
+    rho,
+    max_time: float
+) -> np.ndarray:
+    """
+        Solution to 2d wave equation, initial_condition is an 2d array of floats,
+        constant is the environment conditions for the speed constant,
+        steps is an tuple of the format (dx, dt, ), remember to always put dt < c²/dx²,
+        max_time is the max time for the solution, remember to scale with dt to allocate enough memory,
+    """
+    length = int(max_time/steps[1])
+    ic_lenx = initial_condition.shape[0]
+    ic_leny = initial_condition.shape[1]
+
+    array = calculations.calc.elastodynamic_2d(
+        ic_lenx=ic_leny, 
+        ic_leny=ic_lenx, 
+        sol_len=length, 
+        ew=excited_wave, 
+        ew_len=excited_wave.shape[0], 
+        mu=mu.T, 
+        l=lambda_1.T, 
+        rho=rho.T, 
+        dt=steps[1],
+        dx=steps[0]
+    )
+
+    #result = np.sqrt((array[:, :, :, 0]**2) + (array[:, :, :, 1]**2))
+    result = array[:, :, :, 0]
+    return result

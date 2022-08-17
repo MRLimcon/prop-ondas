@@ -1,34 +1,49 @@
 import numpy as np
-from calculos import solve_wave_equation
+from calculos import *
 import environment_engine
 import matplotlib.pyplot as plt
 import utils
 
 # valores finitos para solução
-dx = 0.05
-dt = 0.01
-t_max = 7
-x_max = 30
-y_max = 10
-freq = 2
+dx = 0.2
+dt = 0.0001
+t_max = 50
+x_max = 10
+y_max = 5
+freq = 1
 
 array_t, X, Y, array_wave = utils.create_wave(x_max, y_max, t_max, dx, dt)
-excited_wave = utils.generate_excited_wave(t_max, dt, freq, type="ricker")
+excited_wave = utils.generate_excited_wave(t_max, dt, freq, type="ricker", simu_type = "acoustic")
 
 environ_params = [
     {
         "type": "base",
-        "constant": 1
+        "constant": 0.1
     },
     {
         "type": "borehole",
-        "constant": 0.5,
+        "constant": 0.05,
         "x_distance": 1.# 0.1
+    }
+]
+shear_speed = environment_engine.create_environment(array_wave, dx, environ_params, True)
+
+environ_params = [
+    {
+        "type": "base",
+        "constant": 0.1
     },
+    {
+        "type": "borehole",
+        "constant": 0.1,
+        "x_distance": 1.# 0.1
+    }
+]
+"""
     {
         "type": "permeable",
         "center": [27, 12],
-        "constant": 0.3,
+        "constant": 0.6,
         "x_distance": 100,
         "y_distance": 100,
         "matrix_constant": 1.,
@@ -38,7 +53,7 @@ environ_params = [
     {
         "type": "solid_rectangle",
         "center": [20, 15],
-        "constant": 0.3,
+        "constant": 0.4,
         "x_distance": 100,
         "y_distance": 5
     },
@@ -63,7 +78,7 @@ environ_params = [
     {
         "type": "solid_circle",
         "center": [15, 20],
-        "constant": 0.5,
+        "constant": 0.7,
         "radius": 4,
         "x_pos": X,
         "y_pos": Y
@@ -79,15 +94,28 @@ environ_params = [
         "height": 0.5,
     }
 ]
-constant = environment_engine.create_environment(array_wave, dx, environ_params, True)
+"""
+pressure_speed = environment_engine.create_environment(array_wave, dx, environ_params, True)
 
 # solução da edp
-result = solve_wave_equation(
-    array_wave, 
-    excited_wave,
-    [dx, dt], 
-    t_max, 
-    environment=constant
+#result = solve_wave_equation(
+#    array_wave, 
+#    excited_wave,
+#    [dx, dt], 
+#    t_max, 
+#    environment=constant
+#)
+
+lambda_1, mu = utils.generate_mu_lambda(shear_speed, pressure_speed)
+
+result = solve_elastodynamic_equation(
+    initial_condition=array_wave,
+    excited_wave=excited_wave,
+    steps=[dx, dt],
+    mu = mu,
+    lambda_1=lambda_1,
+    rho=shear_speed,
+    max_time=t_max
 )
 
 utils.plot_f_l_frames(result)

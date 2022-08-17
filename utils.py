@@ -1,21 +1,18 @@
 from matplotlib import cm
+import fortran_bins.utils as utils
 import numpy as np
 from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-def generate_excited_wave(t_max: float, dt: float, freq: float, type: str = "ricker")-> np.ndarray:
+def generate_excited_wave(t_max: float, dt: float, freq: float, type: str = "ricker", simu_type: str = "normal")-> np.ndarray:
     if type == "ricker":
         t_vals = np.arange(-t_max, t_max, dt)
         exponent = np.exp(-(np.pi**2)*(freq**2)*(t_vals**2))
         result = (1-(2*(np.pi**2)*(freq**2)*(t_vals**2)))*exponent
-        for i in range(len(result)):
-            if all(np.abs(val) <= np.max(result)/50 for val in result[:i]):
-                t_vals = t_vals[i:]
-                result = result[i:]
-            if all(np.abs(val) <= np.max(result)/50 for val in result[i:]):
-                result = result[:i]
-                t_vals = t_vals[:i]
+        ints = utils.utils.fix_ew(ew_len=len(result), ew=result)
+        t_vals = t_vals[ints[0]-1: ints[1]-1]
+        result = result[ints[0]-1: ints[1]-1]
 
     else:
         t_vals = np.arange(0, t_max, dt)
@@ -26,7 +23,20 @@ def generate_excited_wave(t_max: float, dt: float, freq: float, type: str = "ric
     # plt.ylabel("Valor da oscilação")
     # plt.show()
 
+    if simu_type == "acoustic":
+        final_result = result 
+        result = np.zeros([final_result.shape[0], 2])
+        result[:, 0] = final_result
+        result[:, 1] = final_result
+
     return result
+
+def generate_mu_lambda(shear_speed, pressure_speed): #, rho):
+    mu = shear_speed**2 #*rho
+    lambda_1 = pressure_speed**2 - (2*mu) #*rho
+
+    return lambda_1, mu
+
 
 def make_fft(data: np.ndarray, timestep: float, dist: float) -> None:
     """
@@ -112,7 +122,7 @@ def plot_f_l_frames(array: np.ndarray) -> None:
     plt.show()
 
 def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float, 
-    dx: float, distance:float = 0.5, print_freqs: bool = False) -> None:
+    dx: float, distance:float = 0.2, print_freqs: bool = False) -> None:
     """
         Generate the receiver responses along the borehole
     """
