@@ -11,7 +11,7 @@ contains
         integer :: array(2)
         integer :: i, init, end_int
 
-        max_val = maxval(abs(ew))*0.01
+        max_val = maxval(abs(ew))*0.02
 
         do i = 1, ew_len
             if ( all(abs(ew(1:i)) <= max_val) ) then

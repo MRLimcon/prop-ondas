@@ -7,14 +7,16 @@ import utils
 # valores finitos para solução
 dx = 0.2
 dt = 0.0001
-t_max = 50
-x_max = 10
-y_max = 5
+t_max = 135
+x_max = 20
+y_max = 10
 freq = 1
 
+print("started")
 array_t, X, Y, array_wave = utils.create_wave(x_max, y_max, t_max, dx, dt)
+print("generated wave")
 excited_wave = utils.generate_excited_wave(t_max, dt, freq, type="ricker", simu_type = "acoustic")
-
+print("generated excited wave")
 environ_params = [
     {
         "type": "base",
@@ -26,7 +28,7 @@ environ_params = [
         "x_distance": 1.# 0.1
     }
 ]
-shear_speed = environment_engine.create_environment(array_wave, dx, environ_params, True)
+shear_speed = environment_engine.create_environment(array_wave, dx, environ_params)#, True)
 
 environ_params = [
     {
@@ -35,7 +37,7 @@ environ_params = [
     },
     {
         "type": "borehole",
-        "constant": 0.1,
+        "constant": 0.05,
         "x_distance": 1.# 0.1
     }
 ]
@@ -95,7 +97,7 @@ environ_params = [
     }
 ]
 """
-pressure_speed = environment_engine.create_environment(array_wave, dx, environ_params, True)
+pressure_speed = environment_engine.create_environment(array_wave, dx, environ_params)#, True)
 
 # solução da edp
 #result = solve_wave_equation(
@@ -108,7 +110,7 @@ pressure_speed = environment_engine.create_environment(array_wave, dx, environ_p
 
 lambda_1, mu = utils.generate_mu_lambda(shear_speed, pressure_speed)
 
-result = solve_elastodynamic_equation(
+dt, array_t, result = solve_elastodynamic_equation(
     initial_condition=array_wave,
     excited_wave=excited_wave,
     steps=[dx, dt],

@@ -7,27 +7,27 @@ import matplotlib.animation as animation
 
 def generate_excited_wave(t_max: float, dt: float, freq: float, type: str = "ricker", simu_type: str = "normal")-> np.ndarray:
     if type == "ricker":
-        t_vals = np.arange(-t_max, t_max, dt)
+        t_vals = np.arange(-(1/freq)+dt, (1/freq), dt)
         exponent = np.exp(-(np.pi**2)*(freq**2)*(t_vals**2))
         result = (1-(2*(np.pi**2)*(freq**2)*(t_vals**2)))*exponent
-        ints = utils.utils.fix_ew(ew_len=len(result), ew=result)
-        t_vals = t_vals[ints[0]-1: ints[1]-1]
-        result = result[ints[0]-1: ints[1]-1]
+        #ints = utils.utils.fix_ew(ew_len=len(result), ew=result)
+        #t_vals = t_vals[ints[0]-1: ints[1]-1]
+        #result = result[ints[0]-1: ints[1]-1]
 
     else:
         t_vals = np.arange(0, t_max, dt)
         result = np.sin(2*np.pi*freq*t_vals)
 
-    # plt.plot(t_vals, result)
-    # plt.xlabel("Tempo (s)")
-    # plt.ylabel("Valor da oscilação")
-    # plt.show()
+    #plt.plot(t_vals, result)
+    #plt.xlabel("Tempo (s)")
+    #plt.ylabel("Valor da oscilação")
+    #plt.show()
 
     if simu_type == "acoustic":
         final_result = result 
         result = np.zeros([final_result.shape[0], 2])
         result[:, 0] = final_result
-        result[:, 1] = final_result
+        #result[:, 1] = final_result
 
     return result
 

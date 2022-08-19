@@ -51,6 +51,11 @@ def solve_elastodynamic_equation(
     ic_lenx = initial_condition.shape[0]
     ic_leny = initial_condition.shape[1]
 
+    max_speed = np.max([mu, lambda_1])
+    visu_steps = int(max_time/(10*max_speed))
+    visu_dt = round(length/visu_steps)
+    visu_steps = int(length/visu_dt)
+
     array = calculations.calc.elastodynamic_2d(
         ic_lenx=ic_leny, 
         ic_leny=ic_lenx, 
@@ -58,6 +63,8 @@ def solve_elastodynamic_equation(
         ew=excited_wave, 
         ew_len=excited_wave.shape[0], 
         mu=mu.T, 
+        ar_len=visu_steps,
+        ar_steps=visu_dt,
         l=lambda_1.T, 
         rho=rho.T, 
         dt=steps[1],
@@ -66,4 +73,5 @@ def solve_elastodynamic_equation(
 
     #result = np.sqrt((array[:, :, :, 0]**2) + (array[:, :, :, 1]**2))
     result = array[:, :, :, 0]
-    return result
+    times = np.array([visu_dt*steps[1]*i for i in range(result.shape[0])])
+    return visu_dt*steps[1], times, result
