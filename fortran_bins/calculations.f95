@@ -53,7 +53,7 @@ contains
         real :: grad(ic_lenx, ic_leny), laplacian(ic_lenx, ic_leny, 2), derivative(ic_lenx, ic_leny, 2)
         real :: array(ar_len, ic_lenx, ic_leny, 2), acceleration(ic_lenx, ic_leny, 2), velocity(ic_lenx, ic_leny, 2)
         real :: solution(ic_lenx, ic_leny, 2)
-        integer :: i, j, half_lenx, half_leny
+        integer :: i, j, half_lenx, half_leny, lower, upper
 
         solution = 0
         velocity = 0
@@ -62,6 +62,26 @@ contains
         solution(half_lenx, half_leny, :) = ew(1, :)
         array(1, :, :, :) = solution
         j = 2
+
+        if ( all(abs(mu(:, 1)) > 0.00001) ) then
+            do i = 2, ic_leny-1
+                if ( abs(mu(1, i)) < 0.00001 .and. abs(mu(1, i-1)) > 0.00001 ) then
+                    lower = i
+                else if ( abs(mu(1, i)) < 0.00001 .and. abs(mu(1, i+1)) > 0.00001 ) then
+                    upper = i 
+                    exit
+                end if
+            end do
+        else
+            do i = 2, ic_lenx-1
+                if ( abs(mu(i, 1)) < 0.00001 .and. abs(mu(i-1, 1)) > 0.00001 ) then
+                    lower = i
+                else if ( abs(mu(i, 1)) < 0.00001 .and. abs(mu(i+1, 1)) > 0.00001 ) then
+                    upper = i 
+                    exit
+                end if
+            end do
+        end if
 
         do i = 2, sol_len, 1
             acceleration = 0
@@ -72,47 +92,47 @@ contains
             ! u_tt = (l + mu)*(divergent . (u, v))_x + (mu)*(laplacian u)
             ! v_tt = (l + mu)*(divergent . (u, v))_v + (mu)*(laplacian v)
             !taking the laplacian in u
-            laplacian(1, :, 1) = ( solution(2, :, 1) - solution(1, :, 1) )
-            laplacian(ic_lenx, :, 1) = (solution(ic_lenx-1, :, 1) - solution(ic_lenx, :, 1))
+            !laplacian(1, :, 1) = ( solution(2, :, 1) - solution(1, :, 1) )
+            !laplacian(ic_lenx, :, 1) = (solution(ic_lenx-1, :, 1) - solution(ic_lenx, :, 1))
             laplacian(2:ic_lenx-1, :, 1) = solution(3:ic_lenx, :, 1) + solution(1:ic_lenx-2, :, 1) &
                 - (2*solution(2:ic_lenx-1, :, 1))
 
-            laplacian(:, 1, 1) = laplacian(:, 1, 1) + ( solution(:, 2, 1) - solution(:, 1, 1) )
-            laplacian(:, ic_leny, 1) = laplacian(:, ic_leny, 1) & 
-                + (solution(:, ic_leny-1, 1) - solution(:, ic_leny, 1))
+            !laplacian(:, 1, 1) = laplacian(:, 1, 1) + ( solution(:, 2, 1) - solution(:, 1, 1) )
+            !laplacian(:, ic_leny, 1) = laplacian(:, ic_leny, 1) & 
+            !    + (solution(:, ic_leny-1, 1) - solution(:, ic_leny, 1))
             laplacian(:, 2:ic_leny-1, 1) = laplacian(:, 2:ic_leny-1, 1) + solution(:, 3:ic_leny, 1) &
                 + solution(:, 1:ic_leny-2, 1) - (2*solution(:, 2:ic_leny-1, 1))
 
             !taking the laplacian in v
-            laplacian(1, :, 2) = ( solution(2, :, 2) - solution(1, :, 2) )
-            laplacian(ic_lenx, :, 2) = (solution(ic_lenx-1, :, 2) - solution(ic_lenx, :, 2))
+            !laplacian(1, :, 2) = ( solution(2, :, 2) - solution(1, :, 2) )
+            !laplacian(ic_lenx, :, 2) = (solution(ic_lenx-1, :, 2) - solution(ic_lenx, :, 2))
             laplacian(2:ic_lenx-1, :, 2) = solution(3:ic_lenx, :, 2) + solution(1:ic_lenx-2, :, 2) &
                 - (2*solution(2:ic_lenx-1, :, 1))
 
-            laplacian(:, 1, 2) = laplacian(:, 1, 2) + ( solution(:, 2, 2) - solution(:, 1, 2) )
-            laplacian(:, ic_leny, 2) = laplacian(:, ic_leny, 2) & 
-                + (solution(:, ic_leny-1, 2) - solution(:, ic_leny, 2))
+            !laplacian(:, 1, 2) = laplacian(:, 1, 2) + ( solution(:, 2, 2) - solution(:, 1, 2) )
+            !laplacian(:, ic_leny, 2) = laplacian(:, ic_leny, 2) & 
+            !    + (solution(:, ic_leny-1, 2) - solution(:, ic_leny, 2))
             laplacian(:, 2:ic_leny-1, 2) = laplacian(:, 2:ic_leny-1, 2) + solution(:, 3:ic_leny, 2) &
                 + solution(:, 1:ic_leny-2, 2) - (2*solution(:, 2:ic_leny-1, 2))
 
             ! taking the divergence
-            grad(1, :) = ( solution(2, :, 1) - solution(1, :, 1) )
-            grad(ic_lenx, :) = -(solution(ic_lenx-1, :, 1) - solution(ic_lenx, :, 1))
+            !grad(1, :) = ( solution(2, :, 1) - solution(1, :, 1) )
+            !grad(ic_lenx, :) = -(solution(ic_lenx-1, :, 1) - solution(ic_lenx, :, 1))
             grad(2:ic_lenx-1, :) = (solution(3:ic_lenx, :, 1) - solution(1:ic_lenx-2, :, 1))/2
 
-            grad(:, 1) = grad(:, 1) + ( solution(:, 2, 2) - solution(:, 1, 2) )
-            grad(:, ic_leny) = grad(:, ic_leny) & 
-                - (solution(:, ic_leny-1, 2) - solution(:, ic_leny, 2))
+            !grad(:, 1) = grad(:, 1) + ( solution(:, 2, 2) - solution(:, 1, 2) )
+            !grad(:, ic_leny) = grad(:, ic_leny) & 
+            !    - (solution(:, ic_leny-1, 2) - solution(:, ic_leny, 2))
             grad(:, 2:ic_leny-1) = grad(:, 2:ic_leny-1) + (solution(:, 3:ic_leny, 2) &
                 - solution(:, 1:ic_leny-2, 2))/2
             
             ! differentiating in x and y, for u and v
-            derivative(1, :, 1) = ( grad(2, :) - grad(1, :) )
-            derivative(ic_lenx, :, 1) = -(grad(ic_lenx-1, :) - grad(ic_lenx, :))
+            !derivative(1, :, 1) = ( grad(2, :) - grad(1, :) )
+            !derivative(ic_lenx, :, 1) = -(grad(ic_lenx-1, :) - grad(ic_lenx, :))
             derivative(2:ic_lenx-1, :, 1) = (grad(3:ic_lenx, :) - grad(1:ic_lenx-2, :))/2
 
-            derivative(:, 1, 2) = ( grad(:, 2) - grad(:, 1) )
-            derivative(:, ic_leny, 2) = -(grad(:, ic_leny-1) - grad(:, ic_leny))
+            !derivative(:, 1, 2) = ( grad(:, 2) - grad(:, 1) )
+            !derivative(:, ic_leny, 2) = -(grad(:, ic_leny-1) - grad(:, ic_leny))
             derivative(:, 2:ic_leny-1, 2) = (grad(:, 3:ic_leny) - grad(:, 1:ic_leny-2))/2
 
             ! integrating

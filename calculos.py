@@ -39,7 +39,8 @@ def solve_elastodynamic_equation(
     mu,
     lambda_1,
     rho,
-    max_time: float
+    max_time: float,
+    freq
 ) -> np.ndarray:
     """
         Solution to 2d wave equation, initial_condition is an 2d array of floats,
@@ -52,7 +53,7 @@ def solve_elastodynamic_equation(
     ic_leny = initial_condition.shape[1]
 
     max_speed = np.max([mu, lambda_1])
-    visu_steps = int(max_time/(10*max_speed))
+    visu_steps = 100
     visu_dt = round(length/visu_steps)
     visu_steps = int(length/visu_dt)
 
@@ -72,6 +73,6 @@ def solve_elastodynamic_equation(
     )
 
     #result = np.sqrt((array[:, :, :, 0]**2) + (array[:, :, :, 1]**2))
-    result = array[:, :, :, 0]
+    result = array[1:, :, :, 0]
     times = np.array([visu_dt*steps[1]*i for i in range(result.shape[0])])
     return visu_dt*steps[1], times, result

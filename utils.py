@@ -18,22 +18,32 @@ def generate_excited_wave(t_max: float, dt: float, freq: float, type: str = "ric
         t_vals = np.arange(0, t_max, dt)
         result = np.sin(2*np.pi*freq*t_vals)
 
-    #plt.plot(t_vals, result)
-    #plt.xlabel("Tempo (s)")
-    #plt.ylabel("Valor da oscilação")
-    #plt.show()
+    plt.plot(t_vals, result)
+    plt.xlabel("Tempo (s)")
+    plt.ylabel("Valor da oscilação")
+    plt.show()
 
     if simu_type == "acoustic":
         final_result = result 
         result = np.zeros([final_result.shape[0], 2])
         result[:, 0] = final_result
-        #result[:, 1] = final_result
+        result[:, 1] = final_result
 
     return result
 
 def generate_mu_lambda(shear_speed, pressure_speed): #, rho):
     mu = shear_speed**2 #*rho
-    lambda_1 = pressure_speed**2 - (2*mu) #*rho
+    lambda_1 = (pressure_speed**2) - (2*mu) #*rho
+
+    shw = plt.imshow(lambda_1.T, cmap = cm.coolwarm)
+    plt.title("Lambda")
+    plt.colorbar(shw, cmap = cm.coolwarm)
+    plt.show()
+
+    shw = plt.imshow(mu.T, cmap = cm.coolwarm)
+    plt.title("Mu")
+    plt.colorbar(shw, cmap = cm.coolwarm)
+    plt.show()
 
     return lambda_1, mu
 
@@ -122,13 +132,13 @@ def plot_f_l_frames(array: np.ndarray) -> None:
     plt.show()
 
 def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float, 
-    dx: float, distance:float = 0.2, print_freqs: bool = False) -> None:
+    dx: float, distance:float = 0.25, print_freqs: bool = False) -> None:
     """
         Generate the receiver responses along the borehole
     """
     y_pos = int(array.shape[2]/2)
     steps = int(distance/dx)
-    initial = int(array.shape[1]/2) - 1
+    initial = int(array.shape[1]/2 - int(1.5/dx)) 
     starts = []
     ends = []
     signal_data = []
