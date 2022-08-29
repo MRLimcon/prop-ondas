@@ -26,8 +26,8 @@ def solve_wave_equation(
         c=constant,
         sol_len=length,
         dt=steps[1],
-        ic_lenx=ic_lenx,
-        ic_leny=ic_leny
+        lenx=ic_lenx,
+        leny=ic_leny
     )
     array = array.T
     return array
@@ -36,6 +36,7 @@ def solve_elastodynamic_equation(
     initial_condition: np.ndarray,
     excited_wave: float,
     steps: tuple[float],
+    borehole_params: tuple[int],
     mu,
     lambda_1,
     rho,
@@ -58,8 +59,8 @@ def solve_elastodynamic_equation(
     visu_steps = int(length/visu_dt)
 
     array = calculations.calc.elastodynamic_2d(
-        ic_lenx=ic_leny, 
-        ic_leny=ic_lenx, 
+        lenx=ic_leny, 
+        leny=ic_lenx, 
         sol_len=length, 
         ew=excited_wave, 
         ew_len=excited_wave.shape[0], 
@@ -69,7 +70,9 @@ def solve_elastodynamic_equation(
         l=lambda_1.T, 
         rho=rho.T, 
         dt=steps[1],
-        dx=steps[0]
+        dx=steps[0],
+        lower=borehole_params[0],
+        upper=borehole_params[1]
     )
 
     #result = np.sqrt((array[:, :, :, 0]**2) + (array[:, :, :, 1]**2))

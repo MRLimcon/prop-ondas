@@ -5,7 +5,7 @@ from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-def generate_excited_wave(t_max: float, dt: float, freq: float, type: str = "ricker", simu_type: str = "normal")-> np.ndarray:
+def generate_excited_wave(t_max: float, dt: float, freq: float, type: str = "ricker", simu_type: str = "normal", show_env: bool = False)-> np.ndarray:
     if type == "ricker":
         t_vals = np.arange(-(1/freq)+dt, (1/freq), dt)
         exponent = np.exp(-(np.pi**2)*(freq**2)*(t_vals**2))
@@ -18,10 +18,11 @@ def generate_excited_wave(t_max: float, dt: float, freq: float, type: str = "ric
         t_vals = np.arange(0, t_max, dt)
         result = np.sin(2*np.pi*freq*t_vals)
 
-    plt.plot(t_vals, result)
-    plt.xlabel("Tempo (s)")
-    plt.ylabel("Valor da oscilação")
-    plt.show()
+    if show_env:
+        plt.plot(t_vals, result)
+        plt.xlabel("Tempo (s)")
+        plt.ylabel("Valor da oscilação")
+        plt.show()
 
     if simu_type == "acoustic":
         final_result = result 
@@ -31,19 +32,20 @@ def generate_excited_wave(t_max: float, dt: float, freq: float, type: str = "ric
 
     return result
 
-def generate_mu_lambda(shear_speed, pressure_speed): #, rho):
+def generate_mu_lambda(shear_speed, pressure_speed, plot_env: bool = False): #, rho):
     mu = shear_speed**2 #*rho
     lambda_1 = (pressure_speed**2) - (2*mu) #*rho
 
-    shw = plt.imshow(lambda_1.T, cmap = cm.coolwarm)
-    plt.title("Lambda")
-    plt.colorbar(shw, cmap = cm.coolwarm)
-    plt.show()
+    if plot_env:
+        shw = plt.imshow(lambda_1.T, cmap = cm.coolwarm)
+        plt.title("Lambda")
+        plt.colorbar(shw, cmap = cm.coolwarm)
+        plt.show()
 
-    shw = plt.imshow(mu.T, cmap = cm.coolwarm)
-    plt.title("Mu")
-    plt.colorbar(shw, cmap = cm.coolwarm)
-    plt.show()
+        shw = plt.imshow(mu.T, cmap = cm.coolwarm)
+        plt.title("Mu")
+        plt.colorbar(shw, cmap = cm.coolwarm)
+        plt.show()
 
     return lambda_1, mu
 

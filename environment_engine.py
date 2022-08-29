@@ -159,4 +159,8 @@ def create_environment(init_array: np.ndarray, steps, params: list[dict], show_e
         plt.tight_layout()
         plt.show()
 
-    return environment
+
+    if np.abs(velocity_constant) < 0.0001:
+        return environment, [end_shape[0], end_shape[1]]
+    else:
+        return environment

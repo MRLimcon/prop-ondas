@@ -3,33 +3,33 @@ module calc
     
 contains
 
-    function free_wave_equation_2d(ic_lenx, ic_leny, sol_len, c, ew, ew_len, dt) result(array)
+    function free_wave_equation_2d(lenx, leny, sol_len, c, ew, ew_len, dt) result(array)
         implicit none
 
-        integer, intent(in) :: ic_lenx, ic_leny, sol_len, ew_len
-        real, intent(in) :: c(ic_lenx, ic_leny), dt, ew(ew_len)
-        real :: array(ic_lenx, ic_leny, sol_len), acceleration(ic_lenx, ic_leny), velocity(ic_lenx, ic_leny)
+        integer, intent(in) :: lenx, leny, sol_len, ew_len
+        real, intent(in) :: c(lenx, leny), dt, ew(ew_len)
+        real :: array(lenx, leny, sol_len), acceleration(lenx, leny), velocity(lenx, leny)
         integer :: i, half_lenx, half_leny
 
         array = 0
         velocity = 0
-        half_lenx = ic_lenx/2
-        half_leny = ic_leny/2
+        half_lenx = lenx/2
+        half_leny = leny/2
         array(half_lenx, half_leny, 1) = ew(1)
 
         do i = 2, sol_len, 1
             acceleration = 0
 
             acceleration(1, :) = ( array(2, :, i-1) - array(1, :, i-1) )
-            acceleration(ic_lenx, :) = (array(ic_lenx-1, :, i-1) - array(ic_lenx, :, i-1))
-            acceleration(2:ic_lenx-1, :) = array(3:ic_lenx, :, i-1) + array(1:ic_lenx-2, :, i-1) &
-                - (2*array(2:ic_lenx-1, :, i-1))
+            acceleration(lenx, :) = (array(lenx-1, :, i-1) - array(lenx, :, i-1))
+            acceleration(2:lenx-1, :) = array(3:lenx, :, i-1) + array(1:lenx-2, :, i-1) &
+                - (2*array(2:lenx-1, :, i-1))
 
             acceleration(:, 1) = acceleration(:, 1) + ( array(:, 2, i-1) - array(:, 1, i-1) )
-            acceleration(:, ic_leny) = acceleration(:, ic_leny) & 
-                + (array(:, ic_leny-1, i-1) - array(:, ic_leny, i-1))
-            acceleration(:, 2:ic_leny-1) = acceleration(:, 2:ic_leny-1) + array(:, 3:ic_leny, i-1) &
-                + array(:, 1:ic_leny-2, i-1) - (2*array(:, 2:ic_leny-1, i-1))
+            acceleration(:, leny) = acceleration(:, leny) & 
+                + (array(:, leny-1, i-1) - array(:, leny, i-1))
+            acceleration(:, 2:leny-1) = acceleration(:, 2:leny-1) + array(:, 3:leny, i-1) &
+                + array(:, 1:leny-2, i-1) - (2*array(:, 2:leny-1, i-1))
 
             acceleration = acceleration*c
 
@@ -44,100 +44,127 @@ contains
 
     end function free_wave_equation_2d
 
-    function elastodynamic_2d(ic_lenx, ic_leny, sol_len, ar_len, ar_steps, ew, ew_len, mu, l, rho, dt, dx) result(array)
+    function get_wave_acceleration(lenx, leny, c, dx, array) result(acceleration)
         implicit none
 
-        integer, intent(in) :: ic_lenx, ic_leny, sol_len, ew_len, ar_len, ar_steps
-        real, intent(in) :: mu(ic_lenx, ic_leny), dt, ew(ew_len, 2), dx
-        real, intent(in) :: l(ic_lenx, ic_leny), rho(ic_lenx, ic_leny)
-        real :: grad(ic_lenx, ic_leny), laplacian(ic_lenx, ic_leny, 2), derivative(ic_lenx, ic_leny, 2)
-        real :: array(ar_len, ic_lenx, ic_leny, 2), acceleration(ic_lenx, ic_leny, 2), velocity(ic_lenx, ic_leny, 2)
-        real :: solution(ic_lenx, ic_leny, 2)
-        integer :: i, j, half_lenx, half_leny, lower, upper
+        integer, intent(in) :: lenx, leny
+        real, intent(in) :: c(lenx, leny), array(lenx, leny), dx
+        real ::  acceleration(lenx-2, leny)
+
+        acceleration = 0
+
+        !acceleration(1, :) = ( array(2, :) - array(1, :) )
+        !acceleration(lenx, :) = (array(lenx-1, :) - array(lenx, :))
+        acceleration(:, :) = array(3:lenx, :) + array(1:lenx-2, :) &
+            - (2*array(2:lenx-1, :))
+
+        !acceleration(:, 1) = acceleration(:, 1) + ( array(:, 2) - array(:, 1) )
+        !acceleration(:, leny) = acceleration(:, leny) & 
+        !    + (array(:, leny-1) - array(:, leny))
+        acceleration(:, 2:leny-1) = acceleration(:, 2:leny-1) + array(2:lenx-1, 3:leny) &
+            + array(2:lenx-1, 1:leny-2) - (2*array(2:lenx-1, 2:leny-1))
+
+        acceleration = acceleration*c/(dx**2)
+
+    end function get_wave_acceleration
+
+    function get_solid_acceleration(lenx, leny, mu, l, dx, solution) result(acceleration)
+        implicit none
+
+        integer, intent(in) :: lenx, leny
+        real, intent(in) :: mu(lenx, leny),  dx, l(lenx, leny), solution(lenx, leny, 2)
+        real :: grad(lenx, leny), laplacian(lenx, leny, 2), derivative(lenx, leny, 2)
+        real ::  acceleration(lenx, leny, 2)
+
+        acceleration = 0
+        laplacian = 0
+        grad = 0
+        derivative = 0
+
+        ! u_tt = (l + mu)*(divergent . (u, v))_x + (mu)*(laplacian u)
+        ! v_tt = (l + mu)*(divergent . (u, v))_v + (mu)*(laplacian v)
+        !taking the laplacian in u
+
+        !laplacian(1, :, 1) = ( solution(2, :, 1) - solution(1, :, 1) )
+        !laplacian(lenx, :, 1) = (solution(lenx-1, :, 1) - solution(lenx, :, 1))
+        laplacian(2:lenx-1, :, 1) = solution(3:lenx, :, 1) + solution(1:lenx-2, :, 1) &
+            - (2*solution(2:lenx-1, :, 1))
+
+        !laplacian(:, 1, 1) = laplacian(:, 1, 1) + ( solution(:, 2, 1) - solution(:, 1, 1) )
+        !laplacian(:, leny, 1) = laplacian(:, leny, 1) & 
+        !    + (solution(:, leny-1, 1) - solution(:, leny, 1))
+        laplacian(:, 2:leny-1, 1) = laplacian(:, 2:leny-1, 1) + solution(:, 3:leny, 1) &
+            + solution(:, 1:leny-2, 1) - (2*solution(:, 2:leny-1, 1))
+
+        !taking the laplacian in v
+
+        !laplacian(1, :, 2) = ( solution(2, :, 2) - solution(1, :, 2) )
+        !laplacian(lenx, :, 2) = (solution(lenx-1, :, 2) - solution(lenx, :, 2))
+        laplacian(2:lenx-1, :, 2) = solution(3:lenx, :, 2) + solution(1:lenx-2, :, 2) &
+            - (2*solution(2:lenx-1, :, 1))
+
+        !laplacian(:, 1, 2) = laplacian(:, 1, 2) + ( solution(:, 2, 2) - solution(:, 1, 2) )
+        !laplacian(:, leny, 2) = laplacian(:, leny, 2) & 
+        !    + (solution(:, leny-1, 2) - solution(:, leny, 2))
+        laplacian(:, 2:leny-1, 2) = laplacian(:, 2:leny-1, 2) + solution(:, 3:leny, 2) &
+            + solution(:, 1:leny-2, 2) - (2*solution(:, 2:leny-1, 2))
+
+        ! taking the divergence
+
+        !grad(1, :) = ( solution(2, :, 1) - solution(1, :, 1) )
+        !grad(lenx, :) = -(solution(lenx-1, :, 1) - solution(lenx, :, 1))
+        grad(2:lenx-1, :) = (solution(3:lenx, :, 1) - solution(1:lenx-2, :, 1))/2
+
+        !grad(:, 1) = grad(:, 1) + ( solution(:, 2, 2) - solution(:, 1, 2) )
+        !grad(:, leny) = grad(:, leny) & 
+        !    - (solution(:, leny-1, 2) - solution(:, leny, 2))
+        grad(:, 2:leny-1) = grad(:, 2:leny-1) + (solution(:, 3:leny, 2) &
+            - solution(:, 1:leny-2, 2))/2
+        
+        ! differentiating in x and y, for u and v
+
+        !derivative(1, :, 1) = ( grad(2, :) - grad(1, :) )
+        !derivative(lenx, :, 1) = -(grad(lenx-1, :) - grad(lenx, :))
+        derivative(2:lenx-1, :, 1) = (grad(3:lenx, :) - grad(1:lenx-2, :))/2
+
+        !derivative(:, 1, 2) = ( grad(:, 2) - grad(:, 1) )
+        !derivative(:, leny, 2) = -(grad(:, leny-1) - grad(:, leny))
+        derivative(:, 2:leny-1, 2) = (grad(:, 3:leny) - grad(:, 1:leny-2))/2
+
+        ! integrating
+        acceleration(:, :, 1) = ((laplacian(:, :, 1)/(dx**2))*mu) + ((derivative(:, :, 1)/(dx))*(mu + l))
+        acceleration(:, :, 2) = ((laplacian(:, :, 2)/(dx**2))*mu) + ((derivative(:, :, 2)/(dx))*(mu + l))
+
+    end function get_solid_acceleration
+
+    function elastodynamic_2d(lenx, leny, sol_len, ar_len, ar_steps, ew, ew_len, mu, l, rho, dt, dx, lower, upper) result(array)
+        implicit none
+
+        integer, intent(in) :: lenx, leny, sol_len, ew_len, ar_len, ar_steps, lower, upper
+        real, intent(in) :: mu(lenx, leny), dt, ew(ew_len, 2), dx
+        real, intent(in) :: l(lenx, leny), rho(lenx, leny)
+        real :: grad(lenx, leny), laplacian(lenx, leny, 2), derivative(lenx, leny, 2)
+        real :: array(ar_len, lenx, leny, 2), acceleration(lenx, leny, 2), velocity(lenx, leny, 2)
+        real :: solution(lenx, leny, 2)
+        integer :: i, j, half_lenx, half_leny
 
         solution = 0
         velocity = 0
-        half_lenx = ic_lenx/2
-        half_leny = ic_leny/2
+        half_lenx = lenx/2
+        half_leny = leny/2
         solution(half_lenx, half_leny, :) = ew(1, :)
         array(1, :, :, :) = solution
         j = 2
 
-        if ( all(abs(mu(:, 1)) > 0.00001) ) then
-            do i = 2, ic_leny-1
-                if ( abs(mu(1, i)) < 0.00001 .and. abs(mu(1, i-1)) > 0.00001 ) then
-                    lower = i
-                else if ( abs(mu(1, i)) < 0.00001 .and. abs(mu(1, i+1)) > 0.00001 ) then
-                    upper = i 
-                    exit
-                end if
-            end do
-        else
-            do i = 2, ic_lenx-1
-                if ( abs(mu(i, 1)) < 0.00001 .and. abs(mu(i-1, 1)) > 0.00001 ) then
-                    lower = i
-                else if ( abs(mu(i, 1)) < 0.00001 .and. abs(mu(i+1, 1)) > 0.00001 ) then
-                    upper = i 
-                    exit
-                end if
-            end do
-        end if
-
         do i = 2, sol_len, 1
-            acceleration = 0
-            laplacian = 0
-            grad = 0
-            derivative = 0
-
-            ! u_tt = (l + mu)*(divergent . (u, v))_x + (mu)*(laplacian u)
-            ! v_tt = (l + mu)*(divergent . (u, v))_v + (mu)*(laplacian v)
-            !taking the laplacian in u
-            !laplacian(1, :, 1) = ( solution(2, :, 1) - solution(1, :, 1) )
-            !laplacian(ic_lenx, :, 1) = (solution(ic_lenx-1, :, 1) - solution(ic_lenx, :, 1))
-            laplacian(2:ic_lenx-1, :, 1) = solution(3:ic_lenx, :, 1) + solution(1:ic_lenx-2, :, 1) &
-                - (2*solution(2:ic_lenx-1, :, 1))
-
-            !laplacian(:, 1, 1) = laplacian(:, 1, 1) + ( solution(:, 2, 1) - solution(:, 1, 1) )
-            !laplacian(:, ic_leny, 1) = laplacian(:, ic_leny, 1) & 
-            !    + (solution(:, ic_leny-1, 1) - solution(:, ic_leny, 1))
-            laplacian(:, 2:ic_leny-1, 1) = laplacian(:, 2:ic_leny-1, 1) + solution(:, 3:ic_leny, 1) &
-                + solution(:, 1:ic_leny-2, 1) - (2*solution(:, 2:ic_leny-1, 1))
-
-            !taking the laplacian in v
-            !laplacian(1, :, 2) = ( solution(2, :, 2) - solution(1, :, 2) )
-            !laplacian(ic_lenx, :, 2) = (solution(ic_lenx-1, :, 2) - solution(ic_lenx, :, 2))
-            laplacian(2:ic_lenx-1, :, 2) = solution(3:ic_lenx, :, 2) + solution(1:ic_lenx-2, :, 2) &
-                - (2*solution(2:ic_lenx-1, :, 1))
-
-            !laplacian(:, 1, 2) = laplacian(:, 1, 2) + ( solution(:, 2, 2) - solution(:, 1, 2) )
-            !laplacian(:, ic_leny, 2) = laplacian(:, ic_leny, 2) & 
-            !    + (solution(:, ic_leny-1, 2) - solution(:, ic_leny, 2))
-            laplacian(:, 2:ic_leny-1, 2) = laplacian(:, 2:ic_leny-1, 2) + solution(:, 3:ic_leny, 2) &
-                + solution(:, 1:ic_leny-2, 2) - (2*solution(:, 2:ic_leny-1, 2))
-
-            ! taking the divergence
-            !grad(1, :) = ( solution(2, :, 1) - solution(1, :, 1) )
-            !grad(ic_lenx, :) = -(solution(ic_lenx-1, :, 1) - solution(ic_lenx, :, 1))
-            grad(2:ic_lenx-1, :) = (solution(3:ic_lenx, :, 1) - solution(1:ic_lenx-2, :, 1))/2
-
-            !grad(:, 1) = grad(:, 1) + ( solution(:, 2, 2) - solution(:, 1, 2) )
-            !grad(:, ic_leny) = grad(:, ic_leny) & 
-            !    - (solution(:, ic_leny-1, 2) - solution(:, ic_leny, 2))
-            grad(:, 2:ic_leny-1) = grad(:, 2:ic_leny-1) + (solution(:, 3:ic_leny, 2) &
-                - solution(:, 1:ic_leny-2, 2))/2
-            
-            ! differentiating in x and y, for u and v
-            !derivative(1, :, 1) = ( grad(2, :) - grad(1, :) )
-            !derivative(ic_lenx, :, 1) = -(grad(ic_lenx-1, :) - grad(ic_lenx, :))
-            derivative(2:ic_lenx-1, :, 1) = (grad(3:ic_lenx, :) - grad(1:ic_lenx-2, :))/2
-
-            !derivative(:, 1, 2) = ( grad(:, 2) - grad(:, 1) )
-            !derivative(:, ic_leny, 2) = -(grad(:, ic_leny-1) - grad(:, ic_leny))
-            derivative(:, 2:ic_leny-1, 2) = (grad(:, 3:ic_leny) - grad(:, 1:ic_leny-2))/2
-
-            ! integrating
-            acceleration(:, :, 1) = ((laplacian(:, :, 1)/(dx**2))*mu) + ((derivative(:, :, 1)/(dx))*(mu + l))
-            acceleration(:, :, 2) = ((laplacian(:, :, 2)/(dx**2))*mu) + ((derivative(:, :, 2)/(dx))*(mu + l))
+            acceleration(1:lower, :, :) = get_solid_acceleration(lower, leny, mu(1:lower, :), l(1:lower, :), &
+                    dx, solution(1:lower, :, :))
+            acceleration(upper:lenx, :, :) = get_solid_acceleration(lenx-upper+1, leny, mu(upper:lenx, :), &
+                    l(upper:lenx, :), dx, solution(upper:lenx, :, :))
+            acceleration(lower:upper, :, 1) = get_wave_acceleration(upper-lower+3, leny, l(lower-1:upper+1, :), &
+                    dx, solution(lower-1:upper+1, :, 1))
+            acceleration(lower:upper, :, 2) = get_wave_acceleration(upper-lower+3, leny, l(lower-1:upper+1, :), &
+                    dx, solution(lower-1:upper+1, :, 2))
 
             velocity = velocity + (acceleration*dt)
             solution(:, :, :) = solution(:, :, :) + (velocity*dt)
