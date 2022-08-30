@@ -143,7 +143,6 @@ contains
         integer, intent(in) :: lenx, leny, sol_len, ew_len, ar_len, ar_steps, lower, upper
         real, intent(in) :: mu(lenx, leny), dt, ew(ew_len, 2), dx
         real, intent(in) :: l(lenx, leny), rho(lenx, leny)
-        real :: grad(lenx, leny), laplacian(lenx, leny, 2), derivative(lenx, leny, 2)
         real :: array(ar_len, lenx, leny, 2), acceleration(lenx, leny, 2), velocity(lenx, leny, 2)
         real :: solution(lenx, leny, 2)
         integer :: i, j, half_lenx, half_leny
@@ -161,10 +160,8 @@ contains
                     dx, solution(:, 1:lower, :))
             acceleration(:, upper:lenx, :) = get_solid_acceleration(lenx, lenx-upper+1, mu(:, upper:lenx), &
                     l(:, upper:lenx), dx, solution(:, upper:lenx, :))
-            acceleration(lower:upper, :, 1) = get_wave_acceleration(lenx, upper-lower+3, l(:, lower-1:upper+1), &
-                    dx, solution(:, lower-1:upper+1, 1))
-            acceleration(lower:upper, :, 2) = get_wave_acceleration(lenx, upper-lower+3, l(:, lower-1:upper+1), &
-                    dx, solution(:, lower-1:upper+1, 2))
+            acceleration(lower:upper, :, :) = get_wave_acceleration(lenx, upper-lower+3, l(:, lower-1:upper+1), &
+                    dx, solution(:, lower-1:upper+1, :))
 
             velocity = velocity + (acceleration*dt)
             solution(:, :, :) = solution(:, :, :) + (velocity*dt)
