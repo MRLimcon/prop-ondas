@@ -161,6 +161,6 @@ def create_environment(init_array: np.ndarray, steps, params: list[dict], show_e
 
 
     if np.abs(velocity_constant) < 0.000001:
-        return environment, [end_shape[0], end_shape[1]]
+        return environment, [end_shape[0]+1, end_shape[1]+1]
     else:
         return environment
