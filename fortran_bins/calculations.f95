@@ -48,21 +48,21 @@ contains
         implicit none
 
         integer, intent(in) :: lenx, leny
-        real, intent(in) :: c(lenx, leny), array(lenx, leny), dx
-        real ::  acceleration(lenx-2, leny)
+        real, intent(in) :: c(lenx, leny), array(lenx, leny, 2), dx
+        real ::  acceleration(lenx, leny-2, 2)
 
         acceleration = 0
 
         !acceleration(1, :) = ( array(2, :) - array(1, :) )
         !acceleration(lenx, :) = (array(lenx-1, :) - array(lenx, :))
-        acceleration(:, :) = array(3:lenx, :) + array(1:lenx-2, :) &
-            - (2*array(2:lenx-1, :))
+        acceleration(2:lenx-1, :, 1) = array(3:lenx, :, 1) + array(1:lenx-2, :, 1) &
+            - (2*array(2:lenx-1, :, 1))
 
         !acceleration(:, 1) = acceleration(:, 1) + ( array(:, 2) - array(:, 1) )
         !acceleration(:, leny) = acceleration(:, leny) & 
         !    + (array(:, leny-1) - array(:, leny))
-        acceleration(:, 2:leny-1) = acceleration(:, 2:leny-1) + array(2:lenx-1, 3:leny) &
-            + array(2:lenx-1, 1:leny-2) - (2*array(2:lenx-1, 2:leny-1))
+        acceleration(2:lenx-1, :, 2) =  array(2:lenx-1, 3:leny, 2) &
+            + array(2:lenx-1, 1:leny-2, 2) - (2*array(2:lenx-1, 2:leny-1, 2))
 
         acceleration = acceleration*c/(dx**2)
 
@@ -157,14 +157,14 @@ contains
         j = 2
 
         do i = 2, sol_len, 1
-            acceleration(1:lower, :, :) = get_solid_acceleration(lower, leny, mu(1:lower, :), l(1:lower, :), &
-                    dx, solution(1:lower, :, :))
-            acceleration(upper:lenx, :, :) = get_solid_acceleration(lenx-upper+1, leny, mu(upper:lenx, :), &
-                    l(upper:lenx, :), dx, solution(upper:lenx, :, :))
-            acceleration(lower:upper, :, 1) = get_wave_acceleration(upper-lower+3, leny, l(lower-1:upper+1, :), &
-                    dx, solution(lower-1:upper+1, :, 1))
-            acceleration(lower:upper, :, 2) = get_wave_acceleration(upper-lower+3, leny, l(lower-1:upper+1, :), &
-                    dx, solution(lower-1:upper+1, :, 2))
+            acceleration(:, 1:lower, :) = get_solid_acceleration(lenx, lower, mu(:, 1:lower), l(:, 1:lower), &
+                    dx, solution(:, 1:lower, :))
+            acceleration(:, upper:lenx, :) = get_solid_acceleration(lenx, lenx-upper+1, mu(:, upper:lenx), &
+                    l(:, upper:lenx), dx, solution(:, upper:lenx, :))
+            acceleration(lower:upper, :, 1) = get_wave_acceleration(lenx, upper-lower+3, l(:, lower-1:upper+1), &
+                    dx, solution(:, lower-1:upper+1, 1))
+            acceleration(lower:upper, :, 2) = get_wave_acceleration(lenx, upper-lower+3, l(:, lower-1:upper+1), &
+                    dx, solution(:, lower-1:upper+1, 2))
 
             velocity = velocity + (acceleration*dt)
             solution(:, :, :) = solution(:, :, :) + (velocity*dt)

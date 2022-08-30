@@ -7,7 +7,7 @@ import utils
 # valores finitos para solução
 dx = 0.2
 dt = 0.0005
-t_max = 50
+t_max = 10
 x_max = 20
 y_max = 10
 freq = 1
@@ -20,7 +20,7 @@ print("generated excited wave")
 environ_params = [
     {
         "type": "base",
-        "constant": 0.03
+        "constant": 0.01
     },
     {
         "type": "borehole",
@@ -33,18 +33,18 @@ shear_speed, bore_params = environment_engine.create_environment(array_wave, dx,
 environ_params = [
     {
         "type": "base",
-        "constant": 0.1
+        "constant": 0.05
     },
     {
         "type": "borehole",
-        "constant": 0.05,
+        "constant": 0.5,
         "x_distance": 1.# 0.1
     }
 ]
 
-pressure_speed = environment_engine.create_environment(array_wave, dx, environ_params, True)
+pressure_speed = environment_engine.create_environment(array_wave, dx, environ_params)#, True)
 
-lambda_1, mu = utils.generate_mu_lambda(shear_speed, pressure_speed)
+lambda_1, mu = utils.generate_mu_lambda(shear_speed, pressure_speed, True)
 
 print("Starting simulation")
 dt, array_t, result = solve_elastodynamic_equation(
