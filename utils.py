@@ -28,7 +28,7 @@ def generate_excited_wave(t_max: float, dt: float, freq: float, type: str = "ric
         final_result = result 
         result = np.zeros([final_result.shape[0], 2])
         result[:, 0] = final_result
-        result[:, 1] = final_result
+        #result[:, 1] = final_result
 
     return result
 
@@ -123,51 +123,97 @@ def plot_f_l_frames(array: np.ndarray) -> None:
     """
         Plot the initial condition and the last frame of the simulation
     """
-    shw = plt.imshow(array[0], cmap = cm.coolwarm)
-    plt.title("First frame")
-    plt.colorbar(shw, cmap = cm.coolwarm)
-    plt.show()
+    if len(array.shape) == 3:
+        shw = plt.imshow(array[0], cmap = cm.coolwarm)
+        plt.title("First frame")
+        plt.colorbar(shw, cmap = cm.coolwarm)
+        plt.show()
 
-    shw = plt.imshow(array[-1], cmap = cm.coolwarm)
-    plt.title("Last frame")
-    plt.colorbar(shw, cmap = cm.coolwarm)
-    plt.show()
+        shw = plt.imshow(array[-1], cmap = cm.coolwarm)
+        plt.title("Last frame")
+        plt.colorbar(shw, cmap = cm.coolwarm)
+        plt.show()
+    elif len(array.shape) == 4:
+        shw = plt.imshow(array[0, :, :, 0], cmap = cm.coolwarm)
+        plt.title("First frame - u")
+        plt.colorbar(shw, cmap = cm.coolwarm)
+        plt.show()
+
+        shw = plt.imshow(array[-1, :, :, 0], cmap = cm.coolwarm)
+        plt.title("Last frame - u")
+        plt.colorbar(shw, cmap = cm.coolwarm)
+        plt.show()
+
+        shw = plt.imshow(array[0, :, :, 1], cmap = cm.coolwarm)
+        plt.title("First frame - v")
+        plt.colorbar(shw, cmap = cm.coolwarm)
+        plt.show()
+
+        shw = plt.imshow(array[-1, :, :, 1], cmap = cm.coolwarm)
+        plt.title("Last frame - v")
+        plt.colorbar(shw, cmap = cm.coolwarm)
+        plt.show()
 
 def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float, 
-    dx: float, distance:float = 0.25, print_freqs: bool = False) -> None:
+    dx: float, distance:float = 0.12, print_freqs: bool = False) -> None:
     """
         Generate the receiver responses along the borehole
     """
     y_pos = int(array.shape[2]/2)
     steps = int(distance/dx)
-    initial = int(array.shape[1]/2 - int(1.5/dx)) 
+    initial = int(array.shape[1]/2 - int(3.5/dx)) 
     starts = []
     ends = []
     signal_data = []
     dists = []
 
     fig, axes = plt.subplots(nrows=5, ncols=1)
-    for i in range(5):
-        x_pos = initial - (steps*i)
-        dist = np.abs(x_pos - int(array.shape[1]/2))*dx
-        new_values = detect_signals(array[:, x_pos, y_pos])
+    if len(array.shape) == 3:
+        for i in range(5):
+            x_pos = initial - (steps*i)
+            dist = np.abs(x_pos - int(array.shape[1]/2))*dx
+            new_values = detect_signals(array[:, x_pos, y_pos])
 
-        if new_values != None:
-            starts.append(new_values[0])
-            ends.append(new_values[1])
-            signal_data.append(array[:, x_pos, y_pos])
-            dists.append(dist)
+            if new_values != None:
+                starts.append(new_values[0])
+                ends.append(new_values[1])
+                signal_data.append(array[:, x_pos, y_pos])
+                dists.append(dist)
 
-        if print_freqs:
-            make_fft(array[:, x_pos, y_pos], dt, dist)
+            if print_freqs:
+                make_fft(array[:, x_pos, y_pos], dt, dist)
 
-        axes[i].plot(array_t, array[:, x_pos, y_pos])
-        axes[i].set_title(f"Distance from source: {dist} m")
+            axes[i].plot(array_t, array[:, x_pos, y_pos])
+            axes[i].set_title(f"Distance from source: {dist} m")
         
-    starts = np.array(starts)
-    ends = np.array(ends)
-    signal_data = np.array(signal_data)
-    dists = np.array(dists)
+        fig.tight_layout()
+        plt.show()
+    elif len(array.shape) == 4:
+        for j in [0, 1]:
+            for i in range(5):
+                x_pos = initial - (steps*i)
+                dist = np.abs(x_pos - int(array.shape[1]/2))*dx
+                new_values = detect_signals(array[:, x_pos, y_pos, j])
+
+                if new_values != None:
+                    starts.append(new_values[0])
+                    ends.append(new_values[1])
+                    signal_data.append(array[:, x_pos, y_pos, j])
+                    dists.append(dist)
+
+                if print_freqs:
+                    make_fft(array[:, x_pos, y_pos, j], dt, dist)
+
+                axes[i].plot(array_t, array[:, x_pos, y_pos, j])
+                axes[i].set_title(f"Distance from source: {dist} m")
+
+            fig.tight_layout()
+            plt.show()
+        
+    #starts = np.array(starts)
+    #ends = np.array(ends)
+    #signal_data = np.array(signal_data)
+    #dists = np.array(dists)
 
     #print("First wave slowness:")
     #print(np.average(np.abs((starts[:-1, 0]-starts[-1, 0])*dt / (dists[:-1]-dists[-1]))))
@@ -177,9 +223,6 @@ def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float,
     #print("Timestamps:")
     #print(starts*dt)
     #print(ends*dt)
-
-    fig.tight_layout()
-    plt.show()
 
 def animate_simulation(
         array_t: np.ndarray, result: np.ndarray, num_frames: float, file_name: str = None, 

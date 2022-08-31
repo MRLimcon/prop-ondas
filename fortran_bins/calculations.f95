@@ -59,7 +59,7 @@ contains
         acceleration(:, :) = acceleration(:, :) + array(:, 3:leny) &
                 + array(:, 1:leny-2) - (2*array(:, 2:leny-1))
 
-        acceleration(:, :) = acceleration(:, :)*c/(dx**2)
+        acceleration = acceleration*c/(dx**2)
 
     end function get_wave_acceleration
 
@@ -96,7 +96,7 @@ contains
         !laplacian(1, :, 2) = ( solution(2, :, 2) - solution(1, :, 2) )
         !laplacian(lenx, :, 2) = (solution(lenx-1, :, 2) - solution(lenx, :, 2))
         laplacian(2:lenx-1, :, 2) = solution(3:lenx, :, 2) + solution(1:lenx-2, :, 2) &
-            - (2*solution(2:lenx-1, :, 1))
+            - (2*solution(2:lenx-1, :, 2))
 
         !laplacian(:, 1, 2) = laplacian(:, 1, 2) + ( solution(:, 2, 2) - solution(:, 1, 2) )
         !laplacian(:, leny, 2) = laplacian(:, leny, 2) & 
@@ -138,12 +138,12 @@ contains
         integer, intent(in) :: lenx, leny, sol_len, ew_len, ar_len, ar_steps, lower, upper
         real, intent(in) :: mu(lenx, leny), dt, ew(ew_len, 2), dx
         real, intent(in) :: l(lenx, leny), rho(lenx, leny)
-        real :: array(ar_len, lenx, leny, 2), acceleration(lenx, leny, 2), velocity(lenx, leny, 2)
-        real :: solution(lenx, leny, 2)
+        real :: array(ar_len, lenx, leny, 2), acceleration(lenx, leny, 2), last(lenx, leny, 2)
+        real :: solution(lenx, leny, 2), k
         integer :: i, j, half_lenx, half_leny
 
         solution = 0
-        velocity = 0
+        last = 0
         half_lenx = lenx/2
         half_leny = leny/2
         solution(half_lenx, half_leny, :) = ew(1, :)
@@ -160,17 +160,20 @@ contains
             acceleration(:, lower:upper, 2) = get_wave_acceleration(lenx, upper-lower+3, l(:, lower:upper), &
                     dx, solution(:, lower-1:upper+1, 2))
 
-            velocity = velocity + (acceleration*dt)
-            solution(:, :, :) = solution(:, :, :) + (velocity*dt)
+            solution = (2*solution) - (last) + ((dt**2)*acceleration)
+            last = solution
 
             if ( i <= ew_len ) then
                 solution(half_lenx, half_leny, :) = ew(i, :)
             end if
 
-            if ( mod(i, ar_steps) == 0 ) then
-                write(*,*) j, "/", ar_len
+            if ( mod(i, ar_steps) == 0 .and. j <= ar_len ) then
+                k = (100.0*j/ar_len)
+                write(*,*) j, "/", ar_len, "-", k, "%"
                 array(j, :, :, :) = solution
                 j = j + 1
+            else if ( j > ar_len ) then
+                exit
             end if
 
         end do

@@ -5,12 +5,12 @@ import matplotlib.pyplot as plt
 import utils
 
 # valores finitos para solução
-dx = 0.2
-dt = 0.00001
-t_max = 20
-x_max = 20
-y_max = 10
-freq = 1
+dx = 0.03
+dt = 0.000001
+t_max = 0.01
+x_max = 25
+y_max = 12.5
+freq = 8000
 
 print("started")
 array_t, X, Y, array_wave = utils.create_wave(x_max, y_max, t_max, dx, dt)
@@ -21,12 +21,12 @@ print("generated excited wave")
 environ_params = [
     {
         "type": "base",
-        "constant": 0.1075
+        "constant": 2000
     },
     {
         "type": "borehole",
         "constant": 0.0,
-        "x_distance": 1.# 0.1
+        "x_distance": 3
     }
 ]
 shear_speed, bore_params = environment_engine.create_environment(array_wave, dx, environ_params)#, True)
@@ -34,18 +34,18 @@ shear_speed, bore_params = environment_engine.create_environment(array_wave, dx,
 environ_params = [
     {
         "type": "base",
-        "constant": 0.1885
+        "constant": 3500
     },
     {
         "type": "borehole",
-        "constant": 0.0808,
-        "x_distance": 1.# 0.1
+        "constant": 1500,
+        "x_distance": 3
     }
 ]
 
 pressure_speed = environment_engine.create_environment(array_wave, dx, environ_params)#, True)
 
-lambda_1, mu = utils.generate_mu_lambda(shear_speed, pressure_speed)# , True)
+lambda_1, mu = utils.generate_mu_lambda(shear_speed, pressure_speed)#, True)
 
 print("Starting simulation")
 dt, array_t, result = solve_elastodynamic_equation(
@@ -56,7 +56,6 @@ dt, array_t, result = solve_elastodynamic_equation(
     lambda_1=lambda_1,
     rho=shear_speed,
     max_time=t_max,
-    freq=freq,
     borehole_params=bore_params
 )
 print("Simulation ended")
