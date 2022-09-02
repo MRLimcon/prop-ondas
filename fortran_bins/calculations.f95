@@ -138,17 +138,16 @@ contains
         integer, intent(in) :: lenx, leny, sol_len, ew_len, ar_len, ar_steps, lower, upper
         real, intent(in) :: mu(lenx, leny), dt, ew(ew_len, 2), dx
         real, intent(in) :: l(lenx, leny), rho(lenx, leny)
-        real :: array(ar_len, lenx, leny, 2), acceleration(lenx, leny, 2), last(lenx, leny, 2)
+        real :: array(ar_len, lenx, leny, 2), acceleration(lenx, leny, 2), velocity(lenx, leny, 2)
         real :: solution(lenx, leny, 2), k
         integer :: i, j, half_lenx, half_leny
 
         solution = 0
-        last = 0
+        velocity = 0
         half_lenx = lenx/2
         half_leny = leny/2
         solution(half_lenx, half_leny, :) = ew(1, :)
-        array(1, :, :, :) = solution
-        j = 2
+        j = 1
 
         do i = 2, sol_len, 1
             acceleration(:, 1:lower, :) = get_solid_acceleration(lenx, lower, mu(:, 1:lower), l(:, 1:lower), &
@@ -160,8 +159,8 @@ contains
             acceleration(:, lower:upper, 2) = get_wave_acceleration(lenx, upper-lower+3, l(:, lower:upper), &
                     dx, solution(:, lower-1:upper+1, 2))
 
-            solution = (2*solution) - (last) + ((dt**2)*acceleration)
-            last = solution
+            velocity = velocity + (acceleration*dt)
+            solution = solution + (velocity*dt)
 
             if ( i <= ew_len ) then
                 solution(half_lenx, half_leny, :) = ew(i, :)
@@ -170,7 +169,9 @@ contains
             if ( mod(i, ar_steps) == 0 .and. j <= ar_len ) then
                 k = (100.0*j/ar_len)
                 write(*,*) j, "/", ar_len, "-", k, "%"
+
                 array(j, :, :, :) = solution
+                ! array(j, :, :) = acceleration(:, :, 1) + acceleration(:, :, 2)
                 j = j + 1
             else if ( j > ar_len ) then
                 exit

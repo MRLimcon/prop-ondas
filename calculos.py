@@ -73,6 +73,7 @@ def solve_elastodynamic_equation(
         upper=borehole_params[1]
     )
 
-    result = array
-    times = np.array([visu_dt*steps[1]*i for i in range(result.shape[0])])
-    return visu_dt*steps[1], times, result
+    #array = ((array[:, 0:-3, 1:-2, 0] + array[:, 2:-1, 1:-2, 0] - (2*array[:, 1:-2, 1:-2, 0])) +\
+    #    (array[:, 1:-2, 0:-3, 1] + array[:, 1:-2, 2:-1, 1] - (2*array[:, 1:-2, 1:-2, 1])))/(steps[0]**2)
+    times = np.array([visu_dt*steps[1]*i for i in range(array.shape[0])])
+    return visu_dt*steps[1], times, array

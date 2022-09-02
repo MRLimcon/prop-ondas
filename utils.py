@@ -28,7 +28,7 @@ def generate_excited_wave(t_max: float, dt: float, freq: float, type: str = "ric
         final_result = result 
         result = np.zeros([final_result.shape[0], 2])
         result[:, 0] = final_result
-        #result[:, 1] = final_result
+        result[:, 1] = final_result
 
     return result
 
@@ -159,7 +159,7 @@ def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float,
     """
         Generate the receiver responses along the borehole
     """
-    y_pos = int(array.shape[2]/2)
+    y_pos = int(array.shape[2]/2)+2
     steps = int(distance/dx)
     initial = int(array.shape[1]/2 - int(3.5/dx)) 
     starts = []
@@ -167,9 +167,10 @@ def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float,
     signal_data = []
     dists = []
 
-    fig, axes = plt.subplots(nrows=5, ncols=1)
+    
     if len(array.shape) == 3:
-        for i in range(5):
+        fig, axes = plt.subplots(nrows=4, ncols=1)
+        for i in range(4):
             x_pos = initial - (steps*i)
             dist = np.abs(x_pos - int(array.shape[1]/2))*dx
             new_values = detect_signals(array[:, x_pos, y_pos])
@@ -190,7 +191,8 @@ def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float,
         plt.show()
     elif len(array.shape) == 4:
         for j in [0, 1]:
-            for i in range(5):
+            fig, axes = plt.subplots(nrows=4, ncols=1)
+            for i in range(4):
                 x_pos = initial - (steps*i)
                 dist = np.abs(x_pos - int(array.shape[1]/2))*dx
                 new_values = detect_signals(array[:, x_pos, y_pos, j])

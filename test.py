@@ -6,8 +6,8 @@ import utils
 
 # valores finitos para solução
 dx = 0.03
-dt = 0.000001
-t_max = 0.01
+dt = 0.000005
+t_max = 0.005
 x_max = 25
 y_max = 12.5
 freq = 8000
@@ -26,10 +26,10 @@ environ_params = [
     {
         "type": "borehole",
         "constant": 0.0,
-        "x_distance": 3
+        "x_distance": 0.1
     }
 ]
-shear_speed, bore_params = environment_engine.create_environment(array_wave, dx, environ_params)#, True)
+shear_speed, bore_params = environment_engine.create_environment(array_wave, dx, environ_params, True)
 
 environ_params = [
     {
@@ -39,11 +39,11 @@ environ_params = [
     {
         "type": "borehole",
         "constant": 1500,
-        "x_distance": 3
+        "x_distance": 0.1
     }
 ]
 
-pressure_speed = environment_engine.create_environment(array_wave, dx, environ_params)#, True)
+pressure_speed = environment_engine.create_environment(array_wave, dx, environ_params, True)
 
 lambda_1, mu = utils.generate_mu_lambda(shear_speed, pressure_speed)#, True)
 
