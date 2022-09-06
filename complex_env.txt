@@ -1,0 +1,66 @@
+"""
+    {
+        "type": "permeable",
+        "center": [27, 12],
+        "constant": 0.6,
+        "x_distance": 100,
+        "y_distance": 100,
+        "matrix_constant": 1.,
+        "liquid_constant": 0.5,
+        "percent": 0.3
+    },
+    {
+        "type": "solid_rectangle",
+        "center": [20, 15],
+        "constant": 0.4,
+        "x_distance": 100,
+        "y_distance": 5
+    },
+    #{
+    #    "type": "permeable",
+    #    "center": [27, 12],
+    #    "constant": 0.3,
+    #    "x_distance": 100,
+    #    "y_distance": 100,
+    #    "matrix_constant": 1.,
+    #    "liquid_constant": 0.3,
+    #    "percent": 0.3
+    #},
+    {
+        "type": "solid_circle",
+        "center": [20, 15],
+        "constant": 0.8,
+        "radius": 4,
+        "x_pos": X,
+        "y_pos": Y
+    },
+    {
+        "type": "solid_circle",
+        "center": [15, 20],
+        "constant": 0.7,
+        "radius": 4,
+        "x_pos": X,
+        "y_pos": Y
+    },
+    {
+        "type": "stripes",
+        "center": [7, 30],
+        "constant": 0.3,
+        "x_distance": 100,
+        "y_distance": 10,
+        "1_constant": 1.,
+        "2_constant": 0.3,
+        "height": 0.5,
+    }
+]
+"""
+
+
+# solução da edp
+#result = solve_wave_equation(
+#    array_wave, 
+#    excited_wave,
+#    [dx, dt], 
+#    t_max, 
+#    environment=constant
+#)

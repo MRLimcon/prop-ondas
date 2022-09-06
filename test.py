@@ -1,82 +1,65 @@
 import numpy as np
-from calculos import solve_wave_equation
+from calculos import *
 import environment_engine
+import matplotlib.pyplot as plt
 import utils
 
 # valores finitos para solução
-dx = 0.1
-dt = 0.05
-t_max = 25
-x_max = 40
-y_max = 25
-freq = 2
-decay = 2
+dx = 0.03
+dt = 0.00000125
+t_max = 0.005
+x_max = 25
+y_max = 12.5
+freq = 8000
 
-array_t, X, Y, array_wave = utils.create_wave(x_max, y_max, t_max, dx, dt, freq, decay)
+print("started")
+array_t, X, Y, array_wave = utils.create_wave(x_max, y_max, t_max, dx, dt)
+print("generated wave")
+excited_wave = utils.generate_excited_wave(t_max, dt, dx, freq, type="ricker", simu_type = "acoustic")
+print("generated excited wave")
+# em metros/20us
 environ_params = [
     {
         "type": "base",
-        "constant": 1.
+        "constant": 2000
     },
     {
         "type": "borehole",
-        "constant": 0.7,
-        "x_distance": 2
-    },
-    {
-        "type": "solid_rectangle",
-        "center": [20, 15],
-        "constant": 0.3,
-        "x_distance": 100,
-        "y_distance": 5
-    },
-    {
-        "type": "solid_circle",
-        "center": [20, 15],
-        "constant": 0.8,
-        "radius": 4,
-        "x_pos": X,
-        "y_pos": Y
-    },
-    {
-        "type": "solid_circle",
-        "center": [15, 20],
-        "constant": 0.5,
-        "radius": 4,
-        "x_pos": X,
-        "y_pos": Y
-    },
-    {
-        "type": "permeable",
-        "center": [27, 12],
-        "constant": 0.3,
-        "x_distance": 100,
-        "y_distance": 5,
-        "matrix_constant": 1.,
-        "liquid_constant": 0.3,
-        "percent": 0.3
-    },
-    {
-        "type": "stripes",
-        "center": [7, 30],
-        "constant": 0.3,
-        "x_distance": 100,
-        "y_distance": 10,
-        "1_constant": 1.,
-        "2_constant": 0.3,
-        "height": 0.5,
+        "constant": 0.0,
+        "x_distance": 0.1
     }
 ]
-constant = environment_engine.create_environment(array_wave, dx, environ_params, True)
+shear_speed, bore_params = environment_engine.create_environment(array_wave, dx, environ_params, True)
 
-# solução da edp
-result = solve_wave_equation(
-    array_wave, 
-    [dx, dt], 
-    t_max, 
-    environment=constant
+environ_params = [
+    {
+        "type": "base",
+        "constant": 3500
+    },
+    {
+        "type": "borehole",
+        "constant": 1500,
+        "x_distance": 0.1
+    }
+]
+
+pressure_speed = environment_engine.create_environment(array_wave, dx, environ_params, True)
+
+lambda_1, mu = utils.generate_mu_lambda(shear_speed, pressure_speed)#, True)
+
+print("Starting simulation")
+dt, array_t, result = solve_elastodynamic_equation(
+    initial_condition=array_wave,
+    excited_wave=excited_wave,
+    steps=[dx, dt],
+    mu = mu,
+    lambda_1=lambda_1,
+    rho=shear_speed,
+    max_time=t_max,
+    borehole_params=bore_params
 )
+print("Simulation ended")
 
 utils.plot_f_l_frames(result)
-utils.plot_response(array_t, result, dt, dx)
-#utils.animate_simulation(array_t, result, 150, file_name="movie.mp4")
+utils.plot_response(array_t, result, dt, dx)#, print_freqs=True)
+# utils.animate_simulation(array_t, result, 150, file_name="movie.mp4")
