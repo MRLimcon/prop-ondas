@@ -5,18 +5,18 @@ from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-def generate_excited_wave(t_max: float, dt: float, freq: float, type: str = "ricker", simu_type: str = "normal", show_env: bool = False)-> np.ndarray:
+def generate_excited_wave(t_max: float, dt: float, dx: float, freq: float, type: str = "ricker", simu_type: str = "normal", show_env: bool = False)-> np.ndarray:
     if type == "ricker":
         t_vals = np.arange(-(1/freq)+dt, (1/freq), dt)
         exponent = np.exp(-(np.pi**2)*(freq**2)*(t_vals**2))
-        result = (1-(2*(np.pi**2)*(freq**2)*(t_vals**2)))*exponent
+        result = (1-(2*(np.pi**2)*(freq**2)*(t_vals**2)))*exponent*dx
         #ints = utils.utils.fix_ew(ew_len=len(result), ew=result)
         #t_vals = t_vals[ints[0]-1: ints[1]-1]
         #result = result[ints[0]-1: ints[1]-1]
 
     else:
         t_vals = np.arange(0, t_max, dt)
-        result = np.sin(2*np.pi*freq*t_vals)
+        result = np.sin(2*np.pi*freq*t_vals)*dx
 
     if show_env:
         plt.plot(t_vals, result)

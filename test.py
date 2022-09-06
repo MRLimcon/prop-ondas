@@ -6,7 +6,7 @@ import utils
 
 # valores finitos para solução
 dx = 0.03
-dt = 0.000005
+dt = 0.00000125
 t_max = 0.005
 x_max = 25
 y_max = 12.5
@@ -15,7 +15,7 @@ freq = 8000
 print("started")
 array_t, X, Y, array_wave = utils.create_wave(x_max, y_max, t_max, dx, dt)
 print("generated wave")
-excited_wave = utils.generate_excited_wave(t_max, dt, freq, type="ricker", simu_type = "acoustic")
+excited_wave = utils.generate_excited_wave(t_max, dt, dx, freq, type="ricker", simu_type = "acoustic")
 print("generated excited wave")
 # em metros/20us
 environ_params = [
