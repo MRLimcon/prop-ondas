@@ -138,7 +138,7 @@ contains
         integer, intent(in) :: lenx, leny, sol_len, ew_len, ar_len, ar_steps, lower, upper
         real, intent(in) :: mu(lenx, leny), dt, ew(ew_len, 2), dx
         real, intent(in) :: l(lenx, leny), rho(lenx, leny)
-        real :: array(ar_len, lenx, leny, 2), acceleration(lenx, leny, 2), velocity(lenx, leny, 2)
+        real :: array(ar_len, lenx, leny), acceleration(lenx, leny, 2), velocity(lenx, leny, 2)
         real :: solution(lenx, leny, 2), k
         integer :: i, j, half_lenx, half_leny
 
@@ -160,7 +160,7 @@ contains
                     dx, solution(:, lower-1:upper+1, 2))
 
             velocity = velocity + (acceleration*dt)
-            solution = solution + (velocity*dt)
+            solution = solution + (velocity*dt) + (acceleration*(dt**2)/2)
 
             if ( i <= ew_len ) then
                 solution(half_lenx, half_leny, :) = ew(i, :)
@@ -170,8 +170,8 @@ contains
                 k = (100.0*j/ar_len)
                 write(*,*) j, "/", ar_len, "-", k, "%"
 
-                array(j, :, :, :) = solution
-                ! array(j, :, :) = acceleration(:, :, 1) + acceleration(:, :, 2)
+                ! array(j, :, :, :) = solution
+                array(j, :, :) = acceleration(:, :, 1) + acceleration(:, :, 2)
                 j = j + 1
             else if ( j > ar_len ) then
                 exit

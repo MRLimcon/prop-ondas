@@ -159,7 +159,7 @@ def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float,
     """
         Generate the receiver responses along the borehole
     """
-    y_pos = int(array.shape[2]/2)+2
+    y_pos = int(array.shape[2]/2)+4
     steps = int(distance/dx)
     initial = int(array.shape[1]/2 - int(3.5/dx)) 
     starts = []
@@ -169,8 +169,8 @@ def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float,
 
     
     if len(array.shape) == 3:
-        fig, axes = plt.subplots(nrows=4, ncols=1)
-        for i in range(4):
+        fig, axes = plt.subplots(nrows=6, ncols=1)
+        for i in range(6):
             x_pos = initial - (steps*i)
             dist = np.abs(x_pos - int(array.shape[1]/2))*dx
             new_values = detect_signals(array[:, x_pos, y_pos])
@@ -191,8 +191,8 @@ def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float,
         plt.show()
     elif len(array.shape) == 4:
         for j in [0, 1]:
-            fig, axes = plt.subplots(nrows=4, ncols=1)
-            for i in range(4):
+            fig, axes = plt.subplots(nrows=6, ncols=1)
+            for i in range(6):
                 x_pos = initial - (steps*i)
                 dist = np.abs(x_pos - int(array.shape[1]/2))*dx
                 new_values = detect_signals(array[:, x_pos, y_pos, j])
