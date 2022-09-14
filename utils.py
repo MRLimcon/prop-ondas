@@ -1,6 +1,7 @@
 from matplotlib import cm
 import fortran_bins.utils as utils
 import numpy as np
+import pandas as pd
 from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
@@ -155,7 +156,7 @@ def plot_f_l_frames(array: np.ndarray) -> None:
         plt.show()
 
 def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float, 
-    dx: float, distance:float = 0.12, print_freqs: bool = False) -> None:
+    dx: float, distance:float = 0.12, print_freqs: bool = False, save_data: bool = False) -> None:
     """
         Generate the receiver responses along the borehole
     """
@@ -167,6 +168,9 @@ def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float,
     signal_data = []
     dists = []
 
+    if save_data:
+        data = pd.DataFrame()
+        data["Time (s)"] = array_t
     
     if len(array.shape) == 3:
         fig, axes = plt.subplots(nrows=6, ncols=1)
@@ -183,6 +187,9 @@ def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float,
 
             if print_freqs:
                 make_fft(array[:, x_pos, y_pos], dt, dist)
+
+            if save_data:
+                data[f"Distance: {dist}"] = array[:, x_pos, y_pos]/np.max(array[:, x_pos, y_pos])
 
             axes[i].plot(array_t, array[:, x_pos, y_pos])
             axes[i].set_title(f"Distance from source: {dist} m")
@@ -206,6 +213,9 @@ def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float,
                 if print_freqs:
                     make_fft(array[:, x_pos, y_pos, j], dt, dist)
 
+                if save_data:
+                    data[f"Distance {j}: {dist}"] = array[:, x_pos, y_pos, j]/np.max(array[:, x_pos, y_pos, j])
+
                 axes[i].plot(array_t, array[:, x_pos, y_pos, j])
                 axes[i].set_title(f"Distance from source: {dist} m")
 
@@ -225,6 +235,9 @@ def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float,
     #print("Timestamps:")
     #print(starts*dt)
     #print(ends*dt)
+
+    if save_data:
+        data.to_csv("./results/data.csv")
 
 def animate_simulation(
         array_t: np.ndarray, result: np.ndarray, num_frames: float, file_name: str = None, 

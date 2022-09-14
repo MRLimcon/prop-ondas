@@ -34,7 +34,7 @@ contains
             acceleration = acceleration*c
 
             velocity = velocity + (acceleration*dt)
-            array(:, :, i) = array(:, :, i-1) + (velocity*dt)
+            array(:, :, i) = array(:, :, i-1) + (velocity*dt) + (acceleration*(dt**2)/2)
 
             if ( i <= ew_len ) then
                 array(half_lenx, half_leny, i) = ew(i)
