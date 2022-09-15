@@ -6,7 +6,7 @@ import utils
 
 # valores finitos para solução
 dx = 0.02
-dt = 0.000005
+dt = 0.00000125
 t_max = 0.005
 x_max = 25
 y_max = 12.5
