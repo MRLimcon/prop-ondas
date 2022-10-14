@@ -44,6 +44,13 @@ contains
 
     end function free_wave_equation_2d
 
+end module calc
+
+module elastodynamic
+    implicit none
+    
+contains
+
     function get_wave_acceleration(lenx, leny, c, dx, array) result(acceleration)
         implicit none
 
@@ -180,5 +187,5 @@ contains
         end do
 
     end function elastodynamic_2d
-
-end module calc
+    
+end module elastodynamic

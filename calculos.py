@@ -56,7 +56,7 @@ def solve_elastodynamic_equation(
     visu_dt = round(length/visu_steps)
     visu_steps = int(length/visu_dt)
 
-    array = calculations.calc.elastodynamic_2d(
+    array = calculations.elastodynamic.elastodynamic_2d(
         lenx=ic_leny, 
         leny=ic_lenx, 
         sol_len=length, 

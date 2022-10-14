@@ -6,10 +6,10 @@ import utils
 
 # valores finitos para solução
 dx = 0.02
-dt = 0.00000125
-t_max = 0.005
-x_max = 25
-y_max = 12.5
+dt = 0.0000008
+t_max = 0.004
+x_max = 20
+y_max = 10
 freq = 8000
 
 print("started")
@@ -65,7 +65,8 @@ dt, array_t, result = solve_elastodynamic_equation(
     lambda_1=lambda_1,
     rho=shear_speed,
     max_time=t_max,
-    borehole_params=bore_params
+    borehole_params=bore_params,
+    visu_steps=650
 )
 print("Simulation ended")
 
