@@ -48,96 +48,145 @@ end module calc
 
 module elastodynamic
     implicit none
-    
+
+    real, allocatable :: wave_accel(:, :)
+    real, allocatable :: left_grad(:, :), left_laplacian(:, :, :), left_derivative(:, :, :), left_accel(:, :, :)
+    real, allocatable :: right_grad(:, :), right_laplacian(:, :, :), right_derivative(:, :, :), right_accel(:, :, :)
+
+    real, allocatable :: v(:, :, :, :), s(:, :, :, :)
+    real, allocatable :: k_runge(:, :, :, :), runge_accel(:, :, :)
+
 contains
 
-    function get_wave_acceleration(lenx, leny, c, dx, array) result(acceleration)
+    subroutine get_wave_acceleration(w_lenx, w_leny, c, dx, array)
+        implicit none
+
+        integer, intent(in) :: w_lenx, w_leny
+        real, intent(in) :: c(w_lenx, w_leny-2), array(w_lenx, w_leny), dx
+
+        wave_accel(2:w_lenx-1, :) = array(3:w_lenx, 2:w_leny-1) + array(1:w_lenx-2, 2:w_leny-1) &
+                - (2*array(2:w_lenx-1, 2:w_leny-1))
+
+        wave_accel(:, :) = wave_accel(:, :) + array(:, 3:w_leny) &
+                + array(:, 1:w_leny-2) - (2*array(:, 2:w_leny-1))
+
+        wave_accel = wave_accel*c/(dx**2)
+
+    end subroutine get_wave_acceleration
+
+    subroutine get_solid_acceleration(lenx, leny, mu, l, dx, solution, sign)
         implicit none
 
         integer, intent(in) :: lenx, leny
-        real, intent(in) :: c(lenx, leny-2), array(lenx, leny), dx
-        real ::  acceleration(lenx, leny-2)
-
-        acceleration = 0
-
-        acceleration(2:lenx-1, :) = array(3:lenx, 2:leny-1) + array(1:lenx-2, 2:leny-1) &
-                - (2*array(2:lenx-1, 2:leny-1))
-
-        acceleration(:, :) = acceleration(:, :) + array(:, 3:leny) &
-                + array(:, 1:leny-2) - (2*array(:, 2:leny-1))
-
-        acceleration = acceleration*c/(dx**2)
-
-    end function get_wave_acceleration
-
-    function get_solid_acceleration(lenx, leny, mu, l, dx, solution) result(acceleration)
-        implicit none
-
-        integer, intent(in) :: lenx, leny
+        logical, intent(in) :: sign
         real, intent(in) :: mu(lenx, leny),  dx, l(lenx, leny), solution(lenx, leny, 2)
-        real :: grad(lenx, leny), laplacian(lenx, leny, 2), derivative(lenx, leny, 2)
-        real ::  acceleration(lenx, leny, 2)
-
-        acceleration = 0
-        laplacian = 0
-        grad = 0
-        derivative = 0
 
         ! u_tt = (l + mu)*(divergent . (u, v))_x + (mu)*(laplacian u)
         ! v_tt = (l + mu)*(divergent . (u, v))_v + (mu)*(laplacian v)
-        !taking the laplacian in u
 
-        !laplacian(1, :, 1) = ( solution(2, :, 1) - solution(1, :, 1) )
-        !laplacian(lenx, :, 1) = (solution(lenx-1, :, 1) - solution(lenx, :, 1))
-        laplacian(2:lenx-1, :, 1) = solution(3:lenx, :, 1) + solution(1:lenx-2, :, 1) &
+        if ( sign ) then
+            !taking the laplacian in u
+            left_laplacian(2:lenx-1, :, 1) = solution(3:lenx, :, 1) + solution(1:lenx-2, :, 1) &
             - (2*solution(2:lenx-1, :, 1))
+            left_laplacian(:, 2:leny-1, 1) = left_laplacian(:, 2:leny-1, 1) + solution(:, 3:leny, 1) &
+                + solution(:, 1:leny-2, 1) - (2*solution(:, 2:leny-1, 1))
 
-        !laplacian(:, 1, 1) = laplacian(:, 1, 1) + ( solution(:, 2, 1) - solution(:, 1, 1) )
-        !laplacian(:, leny, 1) = laplacian(:, leny, 1) & 
-        !    + (solution(:, leny-1, 1) - solution(:, leny, 1))
-        laplacian(:, 2:leny-1, 1) = laplacian(:, 2:leny-1, 1) + solution(:, 3:leny, 1) &
-            + solution(:, 1:leny-2, 1) - (2*solution(:, 2:leny-1, 1))
+            !taking the laplacian in v
+            left_laplacian(2:lenx-1, :, 2) = solution(3:lenx, :, 2) + solution(1:lenx-2, :, 2) &
+                - (2*solution(2:lenx-1, :, 2))
+            left_laplacian(:, 2:leny-1, 2) = left_laplacian(:, 2:leny-1, 2) + solution(:, 3:leny, 2) &
+                + solution(:, 1:leny-2, 2) - (2*solution(:, 2:leny-1, 2))
 
-        !taking the laplacian in v
+            ! taking the divergence
+            left_grad(2:lenx-1, :) = (solution(3:lenx, :, 1) - solution(1:lenx-2, :, 1))/2
+            left_grad(:, 2:leny-1) = left_grad(:, 2:leny-1) + (solution(:, 3:leny, 2) &
+                - solution(:, 1:leny-2, 2))/2
+            
+            ! differentiating in x and y, for u and v
+            left_derivative(2:lenx-1, :, 1) = (left_grad(3:lenx, :) - left_grad(1:lenx-2, :))/2
+            left_derivative(:, 2:leny-1, 2) = (left_grad(:, 3:leny) - left_grad(:, 1:leny-2))/2
 
-        !laplacian(1, :, 2) = ( solution(2, :, 2) - solution(1, :, 2) )
-        !laplacian(lenx, :, 2) = (solution(lenx-1, :, 2) - solution(lenx, :, 2))
-        laplacian(2:lenx-1, :, 2) = solution(3:lenx, :, 2) + solution(1:lenx-2, :, 2) &
-            - (2*solution(2:lenx-1, :, 2))
+            ! integrating
+            left_accel(:, :, 1) = ((left_laplacian(:, :, 1)/(dx**2))*mu) + ((left_derivative(:, :, 1)/(dx))*(mu + l))
+            left_accel(:, :, 2) = ((left_laplacian(:, :, 2)/(dx**2))*mu) + ((left_derivative(:, :, 2)/(dx))*(mu + l))
+        else 
+            !taking the laplacian in u
+            right_laplacian(2:lenx-1, :, 1) = solution(3:lenx, :, 1) + solution(1:lenx-2, :, 1) &
+            - (2*solution(2:lenx-1, :, 1))
+            right_laplacian(:, 2:leny-1, 1) = right_laplacian(:, 2:leny-1, 1) + solution(:, 3:leny, 1) &
+                + solution(:, 1:leny-2, 1) - (2*solution(:, 2:leny-1, 1))
 
-        !laplacian(:, 1, 2) = laplacian(:, 1, 2) + ( solution(:, 2, 2) - solution(:, 1, 2) )
-        !laplacian(:, leny, 2) = laplacian(:, leny, 2) & 
-        !    + (solution(:, leny-1, 2) - solution(:, leny, 2))
-        laplacian(:, 2:leny-1, 2) = laplacian(:, 2:leny-1, 2) + solution(:, 3:leny, 2) &
-            + solution(:, 1:leny-2, 2) - (2*solution(:, 2:leny-1, 2))
+            !taking the laplacian in v
+            right_laplacian(2:lenx-1, :, 2) = solution(3:lenx, :, 2) + solution(1:lenx-2, :, 2) &
+                - (2*solution(2:lenx-1, :, 2))
+            right_laplacian(:, 2:leny-1, 2) = right_laplacian(:, 2:leny-1, 2) + solution(:, 3:leny, 2) &
+                + solution(:, 1:leny-2, 2) - (2*solution(:, 2:leny-1, 2))
 
-        ! taking the divergence
+            ! taking the divergence
+            right_grad(2:lenx-1, :) = (solution(3:lenx, :, 1) - solution(1:lenx-2, :, 1))/2
+            right_grad(:, 2:leny-1) = right_grad(:, 2:leny-1) + (solution(:, 3:leny, 2) &
+                - solution(:, 1:leny-2, 2))/2
+            
+            ! differentiating in x and y, for u and v
+            right_derivative(2:lenx-1, :, 1) = (right_grad(3:lenx, :) - right_grad(1:lenx-2, :))/2
+            right_derivative(:, 2:leny-1, 2) = (right_grad(:, 3:leny) - right_grad(:, 1:leny-2))/2
 
-        !grad(1, :) = ( solution(2, :, 1) - solution(1, :, 1) )
-        !grad(lenx, :) = -(solution(lenx-1, :, 1) - solution(lenx, :, 1))
-        grad(2:lenx-1, :) = (solution(3:lenx, :, 1) - solution(1:lenx-2, :, 1))/2
+            ! integrating
+            right_accel(:, :, 1) = ((right_laplacian(:, :, 1)/(dx**2))*mu) + ((right_derivative(:, :, 1)/(dx))*(mu + l))
+            right_accel(:, :, 2) = ((right_laplacian(:, :, 2)/(dx**2))*mu) + ((right_derivative(:, :, 2)/(dx))*(mu + l))
+        end if
 
-        !grad(:, 1) = grad(:, 1) + ( solution(:, 2, 2) - solution(:, 1, 2) )
-        !grad(:, leny) = grad(:, leny) & 
-        !    - (solution(:, leny-1, 2) - solution(:, leny, 2))
-        grad(:, 2:leny-1) = grad(:, 2:leny-1) + (solution(:, 3:leny, 2) &
-            - solution(:, 1:leny-2, 2))/2
-        
-        ! differentiating in x and y, for u and v
+    end subroutine get_solid_acceleration
 
-        !derivative(1, :, 1) = ( grad(2, :) - grad(1, :) )
-        !derivative(lenx, :, 1) = -(grad(lenx-1, :) - grad(lenx, :))
-        derivative(2:lenx-1, :, 1) = (grad(3:lenx, :) - grad(1:lenx-2, :))/2
+    subroutine runge(lenx, leny, mu, l, dt, dx, lower, upper, solution, velocity)
+        implicit none
 
-        !derivative(:, 1, 2) = ( grad(:, 2) - grad(:, 1) )
-        !derivative(:, leny, 2) = -(grad(:, leny-1) - grad(:, leny))
-        derivative(:, 2:leny-1, 2) = (grad(:, 3:leny) - grad(:, 1:leny-2))/2
+        real, intent(in) :: solution(lenx, leny, 2), l(lenx, leny), mu(lenx, leny), dt, dx
+        real, intent(in) :: velocity(lenx, leny, 2)
+        real :: effective_dt
+        integer, intent(in) :: lenx, leny, lower, upper
+        integer :: i, j
 
-        ! integrating
-        acceleration(:, :, 1) = ((laplacian(:, :, 1)/(dx**2))*mu) + ((derivative(:, :, 1)/(dx))*(mu + l))
-        acceleration(:, :, 2) = ((laplacian(:, :, 2)/(dx**2))*mu) + ((derivative(:, :, 2)/(dx))*(mu + l))
+        s(1, :, :, :) = solution
 
-    end function get_solid_acceleration
+        do i = 1, 4
+
+            if ( i == 1 ) then
+                j = 1
+            else 
+                j = i-1
+            end if
+
+            if ( i == 2 .or. i == 3 ) then
+                effective_dt = dt/2
+            else 
+                effective_dt = dt
+            end if
+            
+            call get_solid_acceleration(lenx, lower, mu(:, 1:lower), l(:, 1:lower), &
+                    dx, s(j, :, 1:lower, :), .True.)
+            call get_solid_acceleration(lenx, leny-upper+1, mu(:, upper:lenx), &
+                    l(:, upper:lenx), dx, s(j, :, upper:lenx, :), .False.)
+
+            k_runge(i, :, 1:lower, :) = left_accel
+            k_runge(i, :, upper:lenx, :) = right_accel
+
+            call get_wave_acceleration(lenx, upper-lower+3, l(:, lower:upper), &
+                    dx, s(j, :, lower-1:upper+1, 1))
+            k_runge(i, :, lower:upper, 1) = wave_accel
+
+            call get_wave_acceleration(lenx, upper-lower+3, l(:, lower:upper), &
+                    dx, s(j, :, lower-1:upper+1, 2))
+            k_runge(i, :, lower:upper, 2) = wave_accel
+
+            v(i, :, :, :) = velocity + (k_runge(i, :, :, :)*effective_dt)
+            s(i, :, :, :) = solution + (v(i, :, :, :)*effective_dt) + (k_runge(i, :, :, :)*(effective_dt**2)/2)
+        end do
+
+        runge_accel = (k_runge(1, :, :, :) + (2*k_runge(2, :, :, :)) &
+                + (2*k_runge(3, :, :, :)) + k_runge(4, :, :, :))/6
+
+    end subroutine runge
 
     function elastodynamic_2d(lenx, leny, sol_len, ar_len, ar_steps, ew, ew_len, mu, l, rho, dt, dx, lower, upper) result(array)
         implicit none
@@ -156,16 +205,45 @@ contains
         solution(half_lenx, half_leny, :) = ew(1, :)
         j = 1
 
-        do i = 2, sol_len, 1
-            acceleration(:, 1:lower, :) = get_solid_acceleration(lenx, lower, mu(:, 1:lower), l(:, 1:lower), &
-                    dx, solution(:, 1:lower, :))
-            acceleration(:, upper:lenx, :) = get_solid_acceleration(lenx, leny-upper+1, mu(:, upper:lenx), &
-                    l(:, upper:lenx), dx, solution(:, upper:lenx, :))
-            acceleration(:, lower:upper, 1) = get_wave_acceleration(lenx, upper-lower+3, l(:, lower:upper), &
-                    dx, solution(:, lower-1:upper+1, 1))
-            acceleration(:, lower:upper, 2) = get_wave_acceleration(lenx, upper-lower+3, l(:, lower:upper), &
-                    dx, solution(:, lower-1:upper+1, 2))
+        allocate(wave_accel(lenx, upper-lower+1))
 
+        allocate(left_grad(lenx, lower))
+        allocate(left_laplacian(lenx, lower, 2))
+        allocate(left_derivative(lenx, lower, 2))
+        allocate(left_accel(lenx, lower, 2))
+
+        allocate(right_grad(lenx, leny-upper+1))
+        allocate(right_laplacian(lenx, leny-upper+1, 2))
+        allocate(right_derivative(lenx, leny-upper+1, 2))
+        allocate(right_accel(lenx, leny-upper+1, 2))
+
+        allocate(v(4, lenx, leny, 2))
+        allocate(s(4, lenx, leny, 2))
+        allocate(k_runge(4, lenx, leny, 2))
+        allocate(runge_accel(lenx, leny, 2))
+
+        wave_accel = 0
+
+        left_grad = 0
+        left_laplacian = 0
+        left_derivative = 0
+        left_accel = 0
+
+        right_grad = 0
+        right_laplacian = 0
+        right_derivative = 0
+        right_accel = 0
+
+        k_runge = 0
+        runge_accel = 0
+        s = 0
+        v = 0
+
+        do i = 2, sol_len, 1
+
+            call runge(lenx, leny, mu, l, dt, dx, lower, upper, solution, velocity)
+
+            acceleration = runge_accel
             velocity = velocity + (acceleration*dt)
             solution = solution + (velocity*dt) + (acceleration*(dt**2)/2)
 
@@ -185,6 +263,23 @@ contains
             end if
 
         end do
+
+        deallocate(wave_accel)
+
+        deallocate(left_grad)
+        deallocate(left_laplacian)
+        deallocate(left_derivative)
+        deallocate(left_accel)
+
+        deallocate(right_grad)
+        deallocate(right_laplacian)
+        deallocate(right_derivative)
+        deallocate(right_accel)
+        
+        deallocate(v)
+        deallocate(s)
+        deallocate(k_runge)
+        deallocate(runge_accel)
 
     end function elastodynamic_2d
     

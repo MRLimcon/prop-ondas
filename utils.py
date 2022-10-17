@@ -29,7 +29,7 @@ def generate_excited_wave(t_max: float, dt: float, dx: float, freq: float, type:
         final_result = result 
         result = np.zeros([final_result.shape[0], 2])
         result[:, 0] = final_result
-        result[:, 1] = final_result
+        result[:, 1] = -final_result
 
     return result
 
