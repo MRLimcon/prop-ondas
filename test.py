@@ -1,7 +1,5 @@
-import numpy as np
 from calculos import *
 import environment_engine
-import matplotlib.pyplot as plt
 import utils
 
 # valores finitos para solução
@@ -15,7 +13,7 @@ freq = 8000
 print("started")
 array_t, X, Y, array_wave = utils.create_wave(x_max, y_max, t_max, dx, dt)
 print("generated wave")
-excited_wave = utils.generate_excited_wave(t_max, dt, dx, freq, type="ricker", simu_type = "acoustic")
+excited_wave = utils.generate_excited_wave(t_max, dt, dx, freq, type="ricker", simu_type = "acoustic", show_env=True)
 print("generated excited wave")
 # em metros/20us
 environ_params = [
@@ -66,7 +64,7 @@ dt, array_t, result = solve_elastodynamic_equation(
     rho=shear_speed,
     max_time=t_max,
     borehole_params=bore_params,
-    visu_steps=500
+    visu_steps=250
 )
 print("Simulation ended")
 
