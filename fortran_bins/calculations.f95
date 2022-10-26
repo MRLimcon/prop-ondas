@@ -181,6 +181,7 @@ contains
 
             v(i, :, :, :) = velocity + (k_runge(i, :, :, :)*effective_dt)
             s(i, :, :, :) = solution + (v(i, :, :, :)*effective_dt) + (k_runge(i, :, :, :)*(effective_dt**2)/2)
+            k_runge(i, :, :, :) = k_runge(i, :, :, :)*effective_dt
         end do
 
         runge_accel = (k_runge(1, :, :, :) + (2*k_runge(2, :, :, :)) &
@@ -244,8 +245,8 @@ contains
             call runge(lenx, leny, mu, l, dt, dx, lower, upper, solution, velocity)
 
             acceleration = runge_accel
-            velocity = velocity + (acceleration*dt)
-            solution = solution + (velocity*dt) + (acceleration*(dt**2)/2)
+            velocity = velocity + (acceleration)
+            solution = solution + (velocity*dt) + (acceleration*dt/2)
 
             if ( i <= ew_len ) then
                 solution(half_lenx, half_leny, :) = ew(i, :)
@@ -255,7 +256,7 @@ contains
                 k = (100.0*j/ar_len)
                 write(*,*) j, "/", ar_len, "-", k, "%"
 
-                array(j, :, :) = acceleration(:, :, 1) + acceleration(:, :, 2)
+                array(j, :, :) = acceleration(:, :, 2) - acceleration(:, :, 1)
                 j = j + 1
             else if ( j > ar_len ) then
                 exit
@@ -350,7 +351,7 @@ contains
             ke_runge(i, :, :, :, :) = (curl_obj/c) - (4*pi*conductivity*se_runge(j, :, :, :, :)/c)
 
             se_runge(i, :, :, :, :) = E + (effective_dt*ke_runge(i, :, :, :, :))
-            sb_runge(i, :, :, :, :) = E + (effective_dt*kb_runge(i, :, :, :, :))
+            sb_runge(i, :, :, :, :) = B + (effective_dt*kb_runge(i, :, :, :, :))
 
         end do
 
