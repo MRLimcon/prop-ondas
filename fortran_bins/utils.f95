@@ -163,12 +163,13 @@ contains
         real, intent(in) :: X(lenx, leny, lenz), Y(lenx, leny, lenz), Z(lenx, leny, lenz), radius, center(3)
         real, intent(in) :: height, const, dx
         real :: distances(lenx, leny, lenz), min, max
-        integer :: steps, i
+        integer :: steps, i, turn_const
         logical :: result_array(lenx, leny, lenz)
 
         min = center(3) - (height/2)
         max = min + height
         steps = height/(2*pi*dx)
+        turn_const = 
 
         do i = 1, steps
             
