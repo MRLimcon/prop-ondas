@@ -157,7 +157,7 @@ contains
                 j = i-1
             end if
 
-            if ( i == 2 .or. i == 3 ) then
+            if ( i == 1 .or. i == 2 ) then
                 effective_dt = dt/2
             else 
                 effective_dt = dt
@@ -181,7 +181,12 @@ contains
 
             v(i, :, :, :) = velocity + (k_runge(i, :, :, :)*effective_dt)
             s(i, :, :, :) = solution + (v(i, :, :, :)*effective_dt) + (k_runge(i, :, :, :)*(effective_dt**2)/2)
-            k_runge(i, :, :, :) = k_runge(i, :, :, :)*effective_dt
+
+            if ( i == 1 .or. i == 4 ) then
+                k_runge(i, :, :, :) = k_runge(i, :, :, :)*dt
+            else 
+                k_runge(i, :, :, :) = k_runge(i, :, :, :)*dt/2
+            end if
         end do
 
         runge_accel = (k_runge(1, :, :, :) + (2*k_runge(2, :, :, :)) &
@@ -301,21 +306,19 @@ contains
         integer, intent(in) :: lenx, leny, lenz
         real, intent(in) :: obj(lenx, leny, lenz, 3), dx
 
-        curl_obj = 0
+        curl_obj(2:lenx-1, 2:leny-1, 2:lenz-1, 1) = obj(2:lenx-1, 3:leny, 2:lenz-1, 3) - obj(2:lenx-1, 1:leny-2, 2:lenz-1, 3)
+        curl_obj(2:lenx-1, 2:leny-1, 2:lenz-1, 1) = curl_obj(2:lenx-1, 2:leny-1, 2:lenz-1, 1) - &
+                (obj(2:lenx-1, 2:leny-1, 3:lenz, 2) - obj(2:lenx-1, 2:leny-1, 1:lenz-2, 2))
 
-        curl_obj(:, 2:leny-1, :, 1) = obj(:, 3:leny, :, 3) - obj(:, 1:leny-2, :, 3)
-        curl_obj(:, :, 2:lenz-1, 1) = curl_obj(:, :, 2:lenz-1, 1) - &
-                (obj(:, :, 3:lenz, 2) - obj(:, :, 1:lenz-2, 2))
+        curl_obj(2:lenx-1, 2:leny-1, 2:lenz-1, 2) = (obj(2:lenx-1, 2:leny-1, 3:lenz, 1) - obj(2:lenx-1, 2:leny-1, 1:lenz-2, 1))
+        curl_obj(2:lenx-1, 2:leny-1, 2:lenz-1, 2) = curl_obj(2:lenx-1, 2:leny-1, 2:lenz-1, 2) - &
+                (obj(3:lenx, 2:leny-1, 2:lenz-1, 3) - obj(1:lenx-2, 2:leny-1, 2:lenz-1, 3))
 
-        curl_obj(:, :, 2:lenz-1, 2) = (obj(:, :, 3:lenz, 1) - obj(:, :, 1:lenz-2, 1))
-        curl_obj(2:lenx-1, :, :, 2) = curl_obj(2:lenx-1, :, :, 2) - &
-                (obj(3:lenx, :, :, 3) - obj(1:lenx-2, :, :, 3))
+        curl_obj(2:lenx-1, 2:leny-1, 2:lenz-1, 3) = (obj(3:lenx, 2:leny-1, 2:lenz-1, 2) - obj(1:lenx-2, 2:leny-1, 2:lenz-1, 2))
+        curl_obj(2:lenx-1, 2:leny-1, 2:lenz-1, 3) = curl_obj(2:lenx-1, 2:leny-1, 2:lenz-1, 3) - &
+                (obj(2:lenx-1, 3:leny, 2:lenz-1, 1) - obj(2:lenx-1, 1:leny-2, 2:lenz-1, 1))
 
-        curl_obj(2:lenx-1, :, :, 3) = (obj(3:lenx, :, :, 2) - obj(1:lenx-2, :, :, 2))
-        curl_obj(:, 2:leny-1, :, 3) = curl_obj(:, 2:leny-1, :, 3) - &
-                (obj(:, 3:leny, :, 1) - obj(:, 1:leny-2, :, 1))
-
-        curl_obj = curl_obj/(2*dx)
+        curl_obj = curl_obj*(1/(2*dx))
 
     end subroutine
 
@@ -339,7 +342,7 @@ contains
                 j = i-1
             end if
 
-            if ( i == 2 .or. i == 3 ) then
+            if ( i == 1 .or. i == 2 ) then
                 effective_dt = dt/2
             else 
                 effective_dt = dt
@@ -348,10 +351,18 @@ contains
             call curl(lenx, leny, lenz, se_runge(j, :, :, :, :), dx)
             kb_runge(i, :, :, :, :) = -c*(curl_obj)
             call curl(lenx, leny, lenz, sb_runge(j, :, :, :, :), dx)
-            ke_runge(i, :, :, :, :) = (curl_obj/c) - (4*pi*conductivity*se_runge(j, :, :, :, :)/c)
+            ke_runge(i, :, :, :, :) = (curl_obj*(1/c)) - ((4*pi*conductivity/c)*se_runge(j, :, :, :, :))
 
             se_runge(i, :, :, :, :) = E + (effective_dt*ke_runge(i, :, :, :, :))
             sb_runge(i, :, :, :, :) = B + (effective_dt*kb_runge(i, :, :, :, :))
+
+            if ( i == 1 .or. i == 4 ) then
+                kb_runge(i, :, :, :, :) = kb_runge(i, :, :, :, :)*dt
+                ke_runge(i, :, :, :, :) = ke_runge(i, :, :, :, :)*dt
+            else 
+                kb_runge(i, :, :, :, :) = kb_runge(i, :, :, :, :)*dt/2
+                ke_runge(i, :, :, :, :) = ke_runge(i, :, :, :, :)*dt/2
+            end if
 
         end do
 
@@ -389,8 +400,8 @@ contains
         do i = 2, sol_len
             call runge(lenx, leny, lenz, B, E, conductivity, permi, mu, c, dx, dt)
 
-            B = B + (b_runge*dt)
-            E = E + (e_runge*dt)
+            B = B + b_runge
+            E = E + e_runge
 
             if ( i <= ew_len ) then
                 where(ew_format) E = ew(i, :, :, :, :)
