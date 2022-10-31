@@ -296,6 +296,7 @@ module electromagnetic
     real, allocatable :: kb_runge(:, :, :, :, :), ke_runge(:, :, :, :, :), curl_obj(:, :, :, :)
     real, allocatable :: sb_runge(:, :, :, :, :), se_runge(:, :, :, :, :)
     real, allocatable :: b_runge(:, :, :, :), e_runge(:, :, :, :)
+    real, allocatable :: c_squared(:, :, :), condu_over_permi(:, :, :)
     real, parameter :: pi = 3.1415926535
     
 contains
@@ -322,12 +323,12 @@ contains
 
     end subroutine
 
-    subroutine runge(lenx, leny, lenz, B, E, conductivity, permi, mu, c, dx, dt)
+    subroutine runge(lenx, leny, lenz, B, E, dx, dt, pml)
         implicit none
 
         integer, intent(in) :: lenx, leny, lenz
-        real, intent(in) :: B(lenx, leny, lenz, 3), E(lenx, leny, lenz, 3), dx, dt, permi(lenx, leny, lenz)
-        real, intent(in) :: conductivity(lenx, leny, lenz, 3), c(lenx, leny, lenz, 3), mu(lenx, leny, lenz, 3)
+        real, intent(in) :: B(lenx, leny, lenz, 3), E(lenx, leny, lenz, 3), dx, dt
+        real, intent(in) :: pml(lenx, leny, lenz)
         real :: effective_dt
         integer :: i, j
 
@@ -349,9 +350,14 @@ contains
             end if
 
             call curl(lenx, leny, lenz, se_runge(j, :, :, :, :), dx)
-            kb_runge(i, :, :, :, :) = -c*(curl_obj)
+            kb_runge(i, :, :, :, 1) =  - (curl_obj(:, :, :, 1)) + (pml*sb_runge(j, :, :, :, 1))
+            kb_runge(i, :, :, :, 2) =  - (curl_obj(:, :, :, 2)) + (pml*sb_runge(j, :, :, :, 2))
+            kb_runge(i, :, :, :, 3) =  - (curl_obj(:, :, :, 3)) + (pml*sb_runge(j, :, :, :, 3))
+
             call curl(lenx, leny, lenz, sb_runge(j, :, :, :, :), dx)
-            ke_runge(i, :, :, :, :) = (curl_obj*(1/c)) - ((4*pi*conductivity/c)*se_runge(j, :, :, :, :))
+            ke_runge(i, :, :, :, 1) = (curl_obj(:, :, :, 1)*c_squared) - (condu_over_permi*se_runge(j, :, :, :, 1))
+            ke_runge(i, :, :, :, 2) = (curl_obj(:, :, :, 2)*c_squared) - (condu_over_permi*se_runge(j, :, :, :, 2))
+            ke_runge(i, :, :, :, 3) = (curl_obj(:, :, :, 3)*c_squared) - (condu_over_permi*se_runge(j, :, :, :, 3))
 
             se_runge(i, :, :, :, :) = E + (effective_dt*ke_runge(i, :, :, :, :))
             sb_runge(i, :, :, :, :) = B + (effective_dt*kb_runge(i, :, :, :, :))
@@ -373,21 +379,20 @@ contains
 
     end subroutine runge
 
-    function electromagnetic_3d(lenx, leny, lenz, sol_len, ew_len, ew, ew_format, &
-                ar_len, ar_steps, conductivity, mu, permi, c, dx, dt) result(array)
+    function electromagnetic_3d(lenx, leny, lenz, sol_len, ew, ew_format, &
+                ar_len, ar_steps, conductivity, elec_permi, mag_permi, dx, dt, freq, pml) result(array)
         implicit none
 
-        integer, intent(in) :: lenx, leny, lenz, ar_len, ar_steps, ew_len, sol_len
+        integer, intent(in) :: lenx, leny, lenz, ar_len, ar_steps, sol_len
         logical, intent(in) :: ew_format(lenx, leny, lenz, 3)
-        real, intent(in) :: ew(ew_len, lenx, leny, lenz, 3), conductivity(lenx, leny, lenz), c(lenx, leny, lenz), dx, dt
-        real, intent(in) :: mu(lenx, leny, lenz), permi(lenx, leny, lenz)
-        real :: array(ar_len, lenx, leny, lenz, 3), E(lenx, leny, lenz, 3), B(lenx, leny, lenz, 3)
-        integer :: i, j, k
+        real, intent(in) :: ew(lenx, leny, lenz, 3), conductivity(lenx, leny, lenz), dx, dt
+        real, intent(in) :: elec_permi(lenx, leny, lenz), mag_permi(lenx, leny, lenz), freq, pml(lenx, leny, lenz)
+        real :: array(ar_len, lenx, leny, lenz, 3), E(lenx, leny, lenz, 3), B(lenx, leny, lenz, 3), k
+        integer :: i, j
 
         E = 0
         B = 0
         j = 1
-        where(ew_format) E = ew(1, :, :, :, :)
 
         allocate(kb_runge(4, lenx, leny, lenz, 3))
         allocate(ke_runge(4, lenx, leny, lenz, 3))
@@ -396,16 +401,19 @@ contains
         allocate(b_runge(lenx, leny, lenz, 3))
         allocate(e_runge(lenx, leny, lenz, 3))
         allocate(curl_obj(lenx, leny, lenz, 3))
+        allocate(c_squared(lenx, leny, lenz))
+        allocate(condu_over_permi(lenx, leny, lenz))
+
+        c_squared = (1/(mag_permi*elec_permi))
+        condu_over_permi = (conductivity/elec_permi)
 
         do i = 2, sol_len
-            call runge(lenx, leny, lenz, B, E, conductivity, permi, mu, c, dx, dt)
-
+            call runge(lenx, leny, lenz, B, E, dx, dt, pml)
+            
             B = B + b_runge
             E = E + e_runge
 
-            if ( i <= ew_len ) then
-                where(ew_format) E = ew(i, :, :, :, :)
-            end if
+            where(ew_format) E = ew(:, :, :, :)*(sin(dt*2*pi*freq*(i-1)))
 
             if ( mod(i, ar_steps) == 0 .and. j <= ar_len ) then
                 k = (100.0*j/ar_len)
@@ -425,6 +433,8 @@ contains
         deallocate(b_runge)
         deallocate(e_runge)
         deallocate(curl_obj)
+        deallocate(c_squared)
+        deallocate(condu_over_permi)
 
     
     end function electromagnetic_3d

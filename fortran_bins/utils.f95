@@ -2,6 +2,7 @@ module utils
     implicit none
 
     real, parameter :: pi = 3.1415926535
+    integer, parameter :: turn_const = 50
     
 contains
     
@@ -158,26 +159,28 @@ contains
         points(3) = const_h*t
     end function coil
 
-    function make_coil_format(lenx, leny, lenz, X, Y, Z, dx, height, num, center, radius, const) result(result_array)
-        integer, intent(in) :: lenx, leny, lenz, num
-        real, intent(in) :: X(lenx, leny, lenz), Y(lenx, leny, lenz), Z(lenx, leny, lenz), radius, center(3)
-        real, intent(in) :: height, const, dx
-        real :: distances(lenx, leny, lenz), min, max
-        integer :: steps, i, turn_const
-        logical :: result_array(lenx, leny, lenz)
+    !subroutine make_coil_format(lenx, leny, lenz, X, Y, Z, dx, height, num, center, radius, const, coil_format, coil_derivative)
+    !    integer, intent(in) :: lenx, leny, lenz, num
+    !    real, intent(in) :: X(lenx, leny, lenz), Y(lenx, leny, lenz), Z(lenx, leny, lenz), radius, center(3)
+    !    real, intent(in) :: height, const, dx
+    !    real, intent(inout) :: coil_derivative(lenx, leny, lenz, 3)
+    !    real :: distances(lenx, leny, lenz), min, max, point(3), const_h, const_theta, dt
+    !    integer :: steps, i
+    !    logical, intent(inout) :: coil_format(lenx, leny, lenz)
 
-        min = center(3) - (height/2)
-        max = min + height
-        steps = height/(2*pi*dx)
-        turn_const = 
+    !    min = center(3) - (height/2)
+    !    max = min + height
+    !    steps = turn_const*num
+    !    dt = steps/height
+    !    const_h = 1
 
-        do i = 1, steps
-            
-        end do
+    !    do i = 1, steps
+    !        point = coil()
+    !    end do
 
-        distances = sqrt(((X-center(1))**2) + ((Y-center(2))**2))
-        result_array = (distances <= radius) .and. (abs(Z - center(3)) <= (height/2))
+    !    distances = sqrt(((X-center(1))**2) + ((Y-center(2))**2))
+    !    result_array = (distances <= radius) .and. (abs(Z - center(3)) <= (height/2))
 
-    end function make_coil_format
+    !end subroutine make_coil_format
 
 end module utils

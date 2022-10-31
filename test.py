@@ -3,71 +3,102 @@ import environment_engine
 import utils
 
 # valores finitos para solução
-dx = 0.02
-dt = 0.00000125
-t_max = 0.004
-x_max = 20
-y_max = 10
-freq = 8000
+dx = 0.25
+t_max = 7
+x_max = 5
+y_max = 5
+z_max = 5
+freq = 2
 
 print("started")
-array_t, X, Y, array_wave = utils.create_wave(x_max, y_max, t_max, dx, dt)
-print("generated wave")
-excited_wave = utils.generate_excited_wave(t_max, dt, dx, freq, type="ricker", simu_type = "acoustic", show_env=True)
-print("generated excited wave")
-# em metros/20us
-environ_params = [
-    {
-        "type": "base",
-        "constant": 2000
-    },
-    {
-        "type": "borehole",
-        "constant": 0.0,
-        "x_distance": 0.11
-    }
-]
-shear_speed, bore_params = environment_engine.create_environment(array_wave, dx, environ_params, True)
+X, Y, Z = utils.create_3d_space(x_max, y_max, z_max, dx)
 
 environ_params = [
     {
         "type": "base",
-        "constant": 3500
+        "constant": 1
     },
     {
-        "type": "borehole",
-        "constant": 1500,
-        "x_distance": 0.11
+        "type": "solid_cilinder",
+        "constant": 1,
+        "radius": 1,
+        "height": 10,
+        "center": [0, 0, 0]
     }
 ]
+magnetic_permittivity = environment_engine.create_3d_environment(X, Y, Z, dx, environ_params, True)
 
-pressure_speed = environment_engine.create_environment(array_wave, dx, environ_params, True)
+environ_params = [
+    {
+        "type": "base",
+        "constant": 1
+    },
+    {
+        "type": "solid_cilinder",
+        "constant": 1,
+        "radius": 1,
+        "height": 10,
+        "center": [0, 0, 0]
+    }
+]
+electric_permittivity = environment_engine.create_3d_environment(X, Y, Z, dx, environ_params)
 
-lambda_1, mu = utils.generate_mu_lambda(shear_speed, pressure_speed)#, True)
+environ_params = [
+    {
+        "type": "base",
+        "constant": 0.5
+    },
+    {
+        "type": "solid_cilinder",
+        "constant": 0,
+        "radius": 1,
+        "height": 10,
+        "center": [0, 0, 0]
+    }
+]
+conductivity = environment_engine.create_3d_environment(X, Y, Z, dx, environ_params)
+
+environ_params = [
+    {
+        "type": "base",
+        "constant": 0.5
+    },
+    {
+        "type": "solid_cuboid",
+        "constant": 0,
+        "x_distance": 4,
+        "y_distance": 4,
+        "z_distance": 4,
+        "center": [2.5, 2.5, 2.5]
+    }
+]
+pml = environment_engine.create_3d_environment(X, Y, Z, dx, environ_params, True)
+
+shape = list(electric_permittivity.shape)
+shape.append(3)
+ew = np.zeros(shape)
+ew_format = np.zeros(shape, dtype=bool)
+ew[int(shape[0]/2), int(shape[1]/2), int(shape[2]/2), 1] = 1
+ew_format[int(shape[0]/2), int(shape[1]/2), int(shape[2]/2), 1] = True
+
 
 print("Starting simulation")
 
-#result = solve_wave_equation(
-#    array_wave, 
-#    excited_wave,
-#    [dx, dt], 
-#    t_max, 
-#    environment=constant
-#)
-
-dt, array_t, result = solve_elastodynamic_equation(
-    initial_condition=array_wave,
-    excited_wave=excited_wave,
-    steps=[dx, dt],
-    mu = mu,
-    lambda_1=lambda_1,
-    rho=shear_speed,
+dt, array_t, result = solve_electromagnetic_equation(
+    excited_wave=ew,
+    excited_wave_format=ew_format,
+    dx=dx,
+    mag_permi=magnetic_permittivity,
+    conductivity=conductivity,
+    elec_permi=electric_permittivity,
     max_time=t_max,
-    borehole_params=bore_params,
-    visu_steps=250
+    freq=0.5,
+    pml_layer=pml,
+    visu_steps=150,
+    dt=0.001
 )
 print("Simulation ended")
 
-utils.plot_f_l_frames(result)
-utils.plot_response(array_t, result, dt, dx, save_data=True)#, print_freqs=True)
+utils.plot_f_l_frames(result, X, Y, Z)
+#utils.plot_response(array_t, result, dt, dx, save_data=True)#, print_freqs=True)
 # utils.animate_simulation(array_t, result, 150, file_name="movie.mp4")

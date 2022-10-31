@@ -33,6 +33,13 @@ def generate_excited_wave(t_max: float, dt: float, dx: float, freq: float, type:
 
     return result
 
+def create_3d_space(sizex: float, sizey: float, sizez: float, dx: float):
+    x = np.arange(-sizex/2, (sizex/2)+dx, dx)
+    y = np.arange(-sizey/2, (sizey/2)+dx, dx)
+    z = np.arange(-sizez/2, (sizez/2)+dx, dx)
+
+    return np.meshgrid(x, y, z)
+
 def generate_mu_lambda(shear_speed, pressure_speed, plot_env: bool = False): #, rho):
     mu = shear_speed**2 #*rho
     lambda_1 = (pressure_speed**2) - (2*mu) #*rho
@@ -120,7 +127,7 @@ def create_wave(
     array_wave = np.zeros(X.shape)
     return array_t, X, Y, array_wave
     
-def plot_f_l_frames(array: np.ndarray) -> None:
+def plot_f_l_frames(array: np.ndarray, X=None, Y=None, Z=None) -> None:
     """
         Plot the initial condition and the last frame of the simulation
     """
@@ -134,24 +141,18 @@ def plot_f_l_frames(array: np.ndarray) -> None:
         plt.title("Last frame")
         plt.colorbar(shw, cmap = cm.coolwarm)
         plt.show()
-    elif len(array.shape) == 4:
-        shw = plt.imshow(array[0, :, :, 0], cmap = cm.coolwarm)
-        plt.title("First frame - u")
+    elif len(array.shape) == 5:
+        ax = plt.figure().add_subplot(projection='3d')
+        shw = ax.quiver(X, Y, Z,
+            array[0, :, :, :, 0], array[0, :, :, :, 1], array[0, :, :, :, 2], cmap = cm.coolwarm)
+        plt.title("First Frame")
         plt.colorbar(shw, cmap = cm.coolwarm)
         plt.show()
 
-        shw = plt.imshow(array[-1, :, :, 0], cmap = cm.coolwarm)
-        plt.title("Last frame - u")
-        plt.colorbar(shw, cmap = cm.coolwarm)
-        plt.show()
-
-        shw = plt.imshow(array[0, :, :, 1], cmap = cm.coolwarm)
-        plt.title("First frame - v")
-        plt.colorbar(shw, cmap = cm.coolwarm)
-        plt.show()
-
-        shw = plt.imshow(array[-1, :, :, 1], cmap = cm.coolwarm)
-        plt.title("Last frame - v")
+        ax = plt.figure().add_subplot(projection='3d')
+        shw = ax.quiver(X, Y, Z,
+            array[-1, :, :, :, 0], array[-1, :, :, :, 1], array[-1, :, :, :, 2], cmap = cm.coolwarm)
+        plt.title("Last frame")
         plt.colorbar(shw, cmap = cm.coolwarm)
         plt.show()
 

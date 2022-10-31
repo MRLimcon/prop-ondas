@@ -219,6 +219,12 @@ def create_2d_environment(init_array: np.ndarray, steps, params: list[dict], sho
         return environment
 
 def create_3d_environment(X: np.ndarray, Y: np.ndarray, Z: np.ndarray, steps: float, params: list[dict], show_env: bool = False):
+    """
+        Create an environment of constants,
+        the environment has the shape of init_array, with steps as spatial steps,
+        params has the shapes and parameters for the intented area
+    """
+    
     environment = np.zeros(X.shape)
 
     base = next(param for param in params if param["type"] == "base")
@@ -334,5 +340,13 @@ def create_3d_environment(X: np.ndarray, Y: np.ndarray, Z: np.ndarray, steps: fl
 
         else:
             continue
+
+    if show_env:
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        shw = ax.scatter(X, Y, Z, c=environment, alpha=1, cmap = cm.coolwarm)
+        bar = plt.colorbar(shw, cmap = cm.coolwarm)
+        plt.tight_layout()
+        plt.show()
 
     return environment

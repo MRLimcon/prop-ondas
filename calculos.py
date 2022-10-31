@@ -44,7 +44,7 @@ def solve_elastodynamic_equation(
     visu_steps: int = 500
 ) -> np.ndarray:
     """
-        Solution to 2d wave equation, initial_condition is an 2d array of floats,
+        Solution to 2d elastodynamic equation, initial_condition is an 2d array of floats,
         constant is the environment conditions for the speed constant,
         steps is an tuple of the format (dx, dt, ), remember to always put dt < c²/dx²,
         max_time is the max time for the solution, remember to scale with dt to allocate enough memory,
@@ -73,7 +73,56 @@ def solve_elastodynamic_equation(
         upper=borehole_params[1]
     )
 
-    #array = ((array[:, 0:-3, 1:-2, 0] + array[:, 2:-1, 1:-2, 0] - (2*array[:, 1:-2, 1:-2, 0])) +\
-    #    (array[:, 1:-2, 0:-3, 1] + array[:, 1:-2, 2:-1, 1] - (2*array[:, 1:-2, 1:-2, 1])))/(steps[0]**2)
     times = np.array([visu_dt*steps[1]*i for i in range(array.shape[0])])
     return visu_dt*steps[1], times, array
+
+def solve_electromagnetic_equation(
+    excited_wave: np.ndarray,
+    excited_wave_format: np.ndarray,
+    dx: float,
+    mag_permi: np.ndarray,
+    conductivity: np.ndarray,
+    elec_permi: np.ndarray,
+    max_time: float,
+    freq: float,
+    pml_layer: np.ndarray = None,
+    visu_steps: int = 500,
+    dt: float = None
+) -> np.ndarray:
+    """
+        Solution to 3d electromagnetic equation
+    """
+    if dt == None:
+        dt = 0.577*dx/np.max(1/np.sqrt(mag_permi*elec_permi))
+
+    length = int(max_time/dt)
+    lenx = conductivity.shape[0]
+    leny = conductivity.shape[1]
+    lenz = conductivity.shape[2]
+
+    visu_dt = round(length/visu_steps)
+    visu_steps = int(length/visu_dt)
+
+    if type(pml_layer) == type(None):
+        pml_layer = np.zeros([lenx, leny, lenz])
+
+    array = calculations.electromagnetic.electromagnetic_3d(
+        lenx=lenx, 
+        leny=leny, 
+        lenz=lenz,
+        sol_len=length, 
+        ew=excited_wave,
+        ew_format=excited_wave_format,
+        ar_len=visu_steps,
+        ar_steps=visu_dt,
+        conductivity=conductivity, 
+        elec_permi=elec_permi, 
+        mag_permi=mag_permi,
+        dt=dt,
+        dx=dx,
+        pml=pml_layer,
+        freq=freq, 
+    )
+
+    times = np.array([visu_dt*dt*i for i in range(array.shape[0])])
+    return visu_dt*dt, times, array
