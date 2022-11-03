@@ -350,9 +350,9 @@ contains
             end if
 
             call curl(lenx, leny, lenz, se_runge(j, :, :, :, :), dx)
-            kb_runge(i, :, :, :, 1) =  - (curl_obj(:, :, :, 1)) + (pml*sb_runge(j, :, :, :, 1))
-            kb_runge(i, :, :, :, 2) =  - (curl_obj(:, :, :, 2)) + (pml*sb_runge(j, :, :, :, 2))
-            kb_runge(i, :, :, :, 3) =  - (curl_obj(:, :, :, 3)) + (pml*sb_runge(j, :, :, :, 3))
+            kb_runge(i, :, :, :, 1) =  - (curl_obj(:, :, :, 1)) - (pml*sb_runge(j, :, :, :, 1))
+            kb_runge(i, :, :, :, 2) =  - (curl_obj(:, :, :, 2)) - (pml*sb_runge(j, :, :, :, 2))
+            kb_runge(i, :, :, :, 3) =  - (curl_obj(:, :, :, 3)) - (pml*sb_runge(j, :, :, :, 3))
 
             call curl(lenx, leny, lenz, sb_runge(j, :, :, :, :), dx)
             ke_runge(i, :, :, :, 1) = (curl_obj(:, :, :, 1)*c_squared) - (condu_over_permi*se_runge(j, :, :, :, 1))

@@ -146,14 +146,22 @@ def plot_f_l_frames(array: np.ndarray, X=None, Y=None, Z=None) -> None:
         shw = ax.quiver(X, Y, Z,
             array[0, :, :, :, 0], array[0, :, :, :, 1], array[0, :, :, :, 2], cmap = cm.coolwarm)
         plt.title("First Frame")
-        plt.colorbar(shw, cmap = cm.coolwarm)
         plt.show()
 
         ax = plt.figure().add_subplot(projection='3d')
         shw = ax.quiver(X, Y, Z,
             array[-1, :, :, :, 0], array[-1, :, :, :, 1], array[-1, :, :, :, 2], cmap = cm.coolwarm)
         plt.title("Last frame")
-        plt.colorbar(shw, cmap = cm.coolwarm)
+        plt.show()
+
+        half = int(array.shape[1]/2)
+        plt.quiver(array[-1, half, :, :, 1].T, array[-1, half, :, :, 2].T, cmap = cm.coolwarm)
+        plt.title("Last frame - quiver cut")
+        plt.show()
+
+        array_test = np.sqrt(array[-1, half, :, :, 1]**2) + (array[-1, half, :, :, 0]**2) + (array[-1, half, :, :, 2]**2)
+        plt.imshow(array_test.T, cmap = cm.coolwarm)
+        plt.title("Last frame - intensity cut")
         plt.show()
 
 def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float, 

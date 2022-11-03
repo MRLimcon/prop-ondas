@@ -4,10 +4,10 @@ import utils
 
 # valores finitos para solução
 dx = 0.25
-t_max = 7
-x_max = 5
-y_max = 5
-z_max = 5
+t_max = 20
+x_max = 8
+y_max = 8
+z_max = 8
 freq = 2
 
 print("started")
@@ -20,13 +20,13 @@ environ_params = [
     },
     {
         "type": "solid_cilinder",
-        "constant": 1,
+        "constant": 1.2,
         "radius": 1,
-        "height": 10,
+        "height": 4,
         "center": [0, 0, 0]
     }
 ]
-magnetic_permittivity = environment_engine.create_3d_environment(X, Y, Z, dx, environ_params, True)
+magnetic_permittivity = environment_engine.create_3d_environment(X, Y, Z, dx, environ_params)
 
 environ_params = [
     {
@@ -35,9 +35,9 @@ environ_params = [
     },
     {
         "type": "solid_cilinder",
-        "constant": 1,
+        "constant": 1.2,
         "radius": 1,
-        "height": 10,
+        "height": 4,
         "center": [0, 0, 0]
     }
 ]
@@ -46,13 +46,13 @@ electric_permittivity = environment_engine.create_3d_environment(X, Y, Z, dx, en
 environ_params = [
     {
         "type": "base",
-        "constant": 0.5
+        "constant": 0.75
     },
     {
         "type": "solid_cilinder",
         "constant": 0,
         "radius": 1,
-        "height": 10,
+        "height": 4,
         "center": [0, 0, 0]
     }
 ]
@@ -61,7 +61,7 @@ conductivity = environment_engine.create_3d_environment(X, Y, Z, dx, environ_par
 environ_params = [
     {
         "type": "base",
-        "constant": 0.5
+        "constant": 0.75
     },
     {
         "type": "solid_cuboid",
@@ -69,10 +69,10 @@ environ_params = [
         "x_distance": 4,
         "y_distance": 4,
         "z_distance": 4,
-        "center": [2.5, 2.5, 2.5]
+        "center": [4, 4, 4]
     }
 ]
-pml = environment_engine.create_3d_environment(X, Y, Z, dx, environ_params, True)
+pml = environment_engine.create_3d_environment(X, Y, Z, dx, environ_params)
 
 shape = list(electric_permittivity.shape)
 shape.append(3)
@@ -92,10 +92,10 @@ dt, array_t, result = solve_electromagnetic_equation(
     conductivity=conductivity,
     elec_permi=electric_permittivity,
     max_time=t_max,
-    freq=0.5,
+    freq=1,
     pml_layer=pml,
     visu_steps=150,
-    dt=0.001
+    dt=0.005
 )
 print("Simulation ended")
 
