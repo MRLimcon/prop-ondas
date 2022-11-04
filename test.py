@@ -3,11 +3,11 @@ import environment_engine
 import utils
 
 # valores finitos para solução
-dx = 0.25
+dx = 0.1
 t_max = 20
-x_max = 8
-y_max = 8
-z_max = 8
+x_max = 6
+y_max = 6
+z_max = 6
 freq = 2
 
 print("started")
@@ -61,7 +61,7 @@ conductivity = environment_engine.create_3d_environment(X, Y, Z, dx, environ_par
 environ_params = [
     {
         "type": "base",
-        "constant": 0.75
+        "constant": 1.5
     },
     {
         "type": "solid_cuboid",
@@ -69,7 +69,7 @@ environ_params = [
         "x_distance": 4,
         "y_distance": 4,
         "z_distance": 4,
-        "center": [4, 4, 4]
+        "center": [3, 3, 3]
     }
 ]
 pml = environment_engine.create_3d_environment(X, Y, Z, dx, environ_params)
