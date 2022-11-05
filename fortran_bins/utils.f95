@@ -150,37 +150,117 @@ contains
 
     end function make_cilinder
 
-    function coil(const_h, const_theta, radius, t) result(points)
-        real, intent(in) :: const_h, const_theta, radius, t
+    function ring(radius, declination, t) result(points)
+        real, intent(in) :: radius, declination, t
         real :: points(3)
 
-        points(1) = radius*cos(const_theta*t)
-        points(2) = radius*sin(const_theta*t)
-        points(3) = const_h*t
-    end function coil
+        points(1) = radius*cos(t)
+        points(2) = radius*sin(t)*cos(declination)
+        points(3) = radius*sin(t)*sin(declination)
 
-    !subroutine make_coil_format(lenx, leny, lenz, X, Y, Z, dx, height, num, center, radius, const, coil_format, coil_derivative)
-    !    integer, intent(in) :: lenx, leny, lenz, num
-    !    real, intent(in) :: X(lenx, leny, lenz), Y(lenx, leny, lenz), Z(lenx, leny, lenz), radius, center(3)
-    !    real, intent(in) :: height, const, dx
-    !    real, intent(inout) :: coil_derivative(lenx, leny, lenz, 3)
-    !    real :: distances(lenx, leny, lenz), min, max, point(3), const_h, const_theta, dt
-    !    integer :: steps, i
-    !    logical, intent(inout) :: coil_format(lenx, leny, lenz)
+    end function ring
 
-    !    min = center(3) - (height/2)
-    !    max = min + height
-    !    steps = turn_const*num
-    !    dt = steps/height
-    !    const_h = 1
+    function ring_derivative(radius, declination, t) result(points)
+        real, intent(in) :: radius, declination, t
+        real :: points(3)
 
-    !    do i = 1, steps
-    !        point = coil()
-    !    end do
+        points(1) = -radius*sin(t)
+        points(2) = radius*cos(t)*cos(declination)
+        points(3) = radius*cos(t)*sin(declination)
+    end function ring_derivative
 
-    !    distances = sqrt(((X-center(1))**2) + ((Y-center(2))**2))
-    !    result_array = (distances <= radius) .and. (abs(Z - center(3)) <= (height/2))
+    subroutine make_ring_coil(lenx, leny, lenz, X, Y, Z, dx, center, radius, radius_b, &
+                declination, coil_format, coil_derivative)
+        integer, intent(in) :: lenx, leny, lenz
+        real, intent(in) :: X(lenx, leny, lenz), Y(lenx, leny, lenz), Z(lenx, leny, lenz)
+        real, intent(in) :: dx, radius, radius_b, center(3), declination
+        real, intent(inout) :: coil_derivative(lenx, leny, lenz, 3)
+        real :: distances(lenx, leny, lenz), f_distances(lenx, leny, lenz), l_distances(lenx, leny, lenz)
+        real :: point(3), f_point(3), l_point(3), derivative(3), vec_size
+        integer :: steps, i
+        logical :: local_points(lenx, leny, lenz)
+        logical, intent(inout) :: coil_format(lenx, leny, lenz, 3)
 
-    !end subroutine make_coil_format
+        steps = (2*pi + dx)/dx
+        coil_format = .False.
+        coil_derivative = 0
+
+        do i = 0, steps
+            if ( i == 0 ) then
+                point = ring(radius, declination, i*dx) + center
+                f_point = ring(radius, declination, (i*dx)+dx) + center
+                l_point = ring(radius, declination, (i*dx)-dx) + center
+
+                distances = sqrt(((X-point(1))**2) + ((Y-point(2))**2) + ((Z-point(3))**2))
+                f_distances = sqrt(((X-f_point(1))**2) + ((Y-f_point(2))**2) + ((Z-f_point(3))**2))
+                l_distances = sqrt(((X-l_point(1))**2) + ((Y-l_point(2))**2) + ((Z-l_point(3))**2))
+            else
+                f_point = ring(radius, declination, (i*dx)+dx) + center
+                f_distances = sqrt(((X-f_point(1))**2) + ((Y-f_point(2))**2) + ((Z-f_point(3))**2))
+            end if
+
+            local_points = distances <= radius_b .and. distances <= f_distances .and. distances <= l_distances
+
+            derivative = ring_derivative(radius, declination, i*dx)
+            vec_size = sqrt((derivative(1)**2) + (derivative(2)**2) + (derivative(3)**2))
+            derivative = derivative/vec_size
+
+            where(local_points) coil_derivative(:, :, :, 1) = derivative(1)
+            where(local_points) coil_derivative(:, :, :, 2) = derivative(2)
+            where(local_points) coil_derivative(:, :, :, 3) = derivative(3)
+
+            coil_format(:, :, :, 1) = coil_format(:, :, :, 1) .or. local_points
+            coil_format(:, :, :, 2) = coil_format(:, :, :, 2) .or. local_points
+            coil_format(:, :, :, 3) = coil_format(:, :, :, 3) .or. local_points
+
+            l_point = point
+            point = f_point
+            l_distances = distances
+            distances = f_distances
+        end do
+
+    end subroutine make_ring_coil
+
+    function make_ring(lenx, leny, lenz, X, Y, Z, dx, center, radius, radius_b, &
+        declination) result(ring_format)
+        integer, intent(in) :: lenx, leny, lenz
+        real, intent(in) :: X(lenx, leny, lenz), Y(lenx, leny, lenz), Z(lenx, leny, lenz)
+        real, intent(in) :: dx, radius, radius_b, center(3), declination
+        integer :: steps, i
+        logical :: ring_format(lenx, leny, lenz)
+
+        steps = (2*pi)/dx
+        ring_format = .False.
+
+        do concurrent (i = 0: steps)
+            block
+                logical :: local_points(lenx, leny, lenz)
+                real :: point(3), distances(lenx, leny, lenz)
+
+                point = ring(radius, declination, i*dx) + center
+
+                distances = sqrt(((X-point(1))**2) + ((Y-point(2))**2) + ((Z-point(3))**2))
+
+                local_points = distances <= radius_b
+
+                ring_format = ring_format .or. local_points
+            end block
+        end do
+
+    end function make_ring
+
+    function make_array(lenx, leny, lenz) result(array)
+        integer, intent(in) :: lenx, leny, lenz
+        real :: array(lenx, leny, lenz, 3)
+
+        array = 0
+    end function make_array
+
+    function make_logical_array(lenx, leny, lenz) result(array)
+        integer, intent(in) :: lenx, leny, lenz
+        logical :: array(lenx, leny, lenz, 3)
+
+        array = .False.
+    end function make_logical_array
 
 end module utils

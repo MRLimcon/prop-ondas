@@ -307,19 +307,16 @@ contains
         integer, intent(in) :: lenx, leny, lenz
         real, intent(in) :: obj(lenx, leny, lenz, 3), dx
 
-        curl_obj(2:lenx-1, 2:leny-1, 2:lenz-1, 1) = obj(2:lenx-1, 3:leny, 2:lenz-1, 3) - obj(2:lenx-1, 1:leny-2, 2:lenz-1, 3)
-        curl_obj(2:lenx-1, 2:leny-1, 2:lenz-1, 1) = curl_obj(2:lenx-1, 2:leny-1, 2:lenz-1, 1) - &
-                (obj(2:lenx-1, 2:leny-1, 3:lenz, 2) - obj(2:lenx-1, 2:leny-1, 1:lenz-2, 2))
+        curl_obj(2:lenx-1, 2:leny-1, 2:lenz-1, 1) = obj(2:lenx-1, 3:leny, 2:lenz-1, 3) - obj(2:lenx-1, 1:leny-2, 2:lenz-1, 3) &
+                - (obj(2:lenx-1, 2:leny-1, 3:lenz, 2) - obj(2:lenx-1, 2:leny-1, 1:lenz-2, 2))
 
-        curl_obj(2:lenx-1, 2:leny-1, 2:lenz-1, 2) = (obj(2:lenx-1, 2:leny-1, 3:lenz, 1) - obj(2:lenx-1, 2:leny-1, 1:lenz-2, 1))
-        curl_obj(2:lenx-1, 2:leny-1, 2:lenz-1, 2) = curl_obj(2:lenx-1, 2:leny-1, 2:lenz-1, 2) - &
-                (obj(3:lenx, 2:leny-1, 2:lenz-1, 3) - obj(1:lenx-2, 2:leny-1, 2:lenz-1, 3))
+        curl_obj(2:lenx-1, 2:leny-1, 2:lenz-1, 2) = (obj(2:lenx-1, 2:leny-1, 3:lenz, 1) - obj(2:lenx-1, 2:leny-1, 1:lenz-2, 1)) &
+                - (obj(3:lenx, 2:leny-1, 2:lenz-1, 3) - obj(1:lenx-2, 2:leny-1, 2:lenz-1, 3))
 
-        curl_obj(2:lenx-1, 2:leny-1, 2:lenz-1, 3) = (obj(3:lenx, 2:leny-1, 2:lenz-1, 2) - obj(1:lenx-2, 2:leny-1, 2:lenz-1, 2))
-        curl_obj(2:lenx-1, 2:leny-1, 2:lenz-1, 3) = curl_obj(2:lenx-1, 2:leny-1, 2:lenz-1, 3) - &
-                (obj(2:lenx-1, 3:leny, 2:lenz-1, 1) - obj(2:lenx-1, 1:leny-2, 2:lenz-1, 1))
+        curl_obj(2:lenx-1, 2:leny-1, 2:lenz-1, 3) = (obj(3:lenx, 2:leny-1, 2:lenz-1, 2) - obj(1:lenx-2, 2:leny-1, 2:lenz-1, 2)) &
+                - (obj(2:lenx-1, 3:leny, 2:lenz-1, 1) - obj(2:lenx-1, 1:leny-2, 2:lenz-1, 1))
 
-        curl_obj = curl_obj*(1/(2*dx))
+        curl_obj = (1/(2*dx))*curl_obj
 
     end subroutine
 
@@ -335,7 +332,7 @@ contains
         se_runge(1, :, :, :, :) = E
         sb_runge(1, :, :, :, :) = B 
 
-        do i = 1, 4
+        runge_loop: do i = 1, 4
 
             if ( i == 1 ) then
                 j = 1
@@ -359,10 +356,16 @@ contains
             ke_runge(i, :, :, :, 2) = (curl_obj(:, :, :, 2)*c_squared) - (condu_over_permi*se_runge(j, :, :, :, 2))
             ke_runge(i, :, :, :, 3) = (curl_obj(:, :, :, 3)*c_squared) - (condu_over_permi*se_runge(j, :, :, :, 3))
 
+            if ( i == 4 ) then
+                kb_runge(i, :, :, :, :) = kb_runge(i, :, :, :, :)*dt
+                ke_runge(i, :, :, :, :) = ke_runge(i, :, :, :, :)*dt
+                exit runge_loop
+            end if
+
             se_runge(i, :, :, :, :) = E + (effective_dt*ke_runge(i, :, :, :, :))
             sb_runge(i, :, :, :, :) = B + (effective_dt*kb_runge(i, :, :, :, :))
 
-            if ( i == 1 .or. i == 4 ) then
+            if ( i == 1 ) then
                 kb_runge(i, :, :, :, :) = kb_runge(i, :, :, :, :)*dt
                 ke_runge(i, :, :, :, :) = ke_runge(i, :, :, :, :)*dt
             else 
@@ -370,7 +373,7 @@ contains
                 ke_runge(i, :, :, :, :) = ke_runge(i, :, :, :, :)*dt/2
             end if
 
-        end do
+        end do runge_loop
 
         e_runge = (ke_runge(1, :, :, :, :) + (2*ke_runge(2, :, :, :, :)) &
             + (2*ke_runge(3, :, :, :, :)) + ke_runge(4, :, :, :, :))/6
@@ -396,8 +399,8 @@ contains
 
         allocate(kb_runge(4, lenx, leny, lenz, 3))
         allocate(ke_runge(4, lenx, leny, lenz, 3))
-        allocate(sb_runge(4, lenx, leny, lenz, 3))
-        allocate(se_runge(4, lenx, leny, lenz, 3))
+        allocate(sb_runge(3, lenx, leny, lenz, 3))
+        allocate(se_runge(3, lenx, leny, lenz, 3))
         allocate(b_runge(lenx, leny, lenz, 3))
         allocate(e_runge(lenx, leny, lenz, 3))
         allocate(curl_obj(lenx, leny, lenz, 3))

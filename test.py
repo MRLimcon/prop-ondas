@@ -13,6 +13,9 @@ freq = 2
 print("started")
 X, Y, Z = utils.create_3d_space(x_max, y_max, z_max, dx)
 
+utils.make_coil(X, Y, Z, dx, 0.05, 1, [0,0,0], np.pi/4, True)
+exit()
+
 environ_params = [
     {
         "type": "base",

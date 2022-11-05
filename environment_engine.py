@@ -338,6 +338,29 @@ def create_3d_environment(X: np.ndarray, Y: np.ndarray, Z: np.ndarray, steps: fl
                 ).astype(dtype=np.bool)
             ] = velocity_constant
 
+        elif shape == "solid_ring":
+            radius = shape_params["radius"]
+            r_radius = shape_params["ring_radius"]
+            declination = shape_params["declination"]
+            center = [shape_params["center"][0], shape_params["center"][1], shape_params["center"][2]]
+            velocity_constant = shape_params["constant"]
+
+            environment[
+                utils.utils.make_ring(
+                    lenx=environment.shape[0],
+                    leny=environment.shape[1],
+                    lenz=environment.shape[2],
+                    x=X,
+                    y=Y,
+                    z=Z,
+                    dx=steps/3,
+                    radius_b=r_radius,
+                    center=center,
+                    radius=radius,
+                    declination=declination
+                ).astype(dtype=np.bool)
+            ] = velocity_constant
+
         else:
             continue
 

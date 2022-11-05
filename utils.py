@@ -164,6 +164,38 @@ def plot_f_l_frames(array: np.ndarray, X=None, Y=None, Z=None) -> None:
         plt.title("Last frame - intensity cut")
         plt.show()
 
+def make_coil(X: np.ndarray, Y: np.ndarray, Z: np.ndarray, dx: float, coil_radius: float, 
+            radius: float, center: list[float], declination: float, show_env: bool = False):
+
+    shape = X.shape
+    format = utils.utils.make_logical_array(lenx=shape[0], leny=shape[1], lenz=shape[2])
+    derivative = utils.utils.make_array(lenx=shape[0], leny=shape[1], lenz=shape[2])
+
+    utils.utils.make_ring_coil(
+        lenx=derivative.shape[0],
+        leny=derivative.shape[1],
+        lenz=derivative.shape[2],
+        x=X,
+        y=Y,
+        z=Z,
+        dx=dx/3,
+        radius_b=coil_radius,
+        center=center,
+        radius=radius,
+        declination=declination,
+        coil_format=format,
+        coil_derivative=derivative,
+    )
+
+    if show_env:
+        ax = plt.figure().add_subplot(projection='3d')
+        ax.quiver(X, Y, Z,
+            derivative[:, :, :, 0], derivative[:, :, :, 1], derivative[:, :, :, 2], cmap = cm.coolwarm)
+        plt.title("Coil")
+        plt.show()
+    
+    return format, derivative
+
 def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float, 
     dx: float, distance:float = 0.12, print_freqs: bool = False, save_data: bool = False) -> None:
     """
