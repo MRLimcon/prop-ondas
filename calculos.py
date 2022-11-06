@@ -86,6 +86,7 @@ def solve_electromagnetic_equation(
     max_time: float,
     freq: float,
     pml_layer: np.ndarray = None,
+    current: float = 1,
     visu_steps: int = 500,
     dt: float = None
 ) -> np.ndarray:
@@ -93,7 +94,8 @@ def solve_electromagnetic_equation(
         Solution to 3d electromagnetic equation
     """
     if dt == None:
-        dt = 0.577*dx/np.max(1/np.sqrt(mag_permi*elec_permi))
+        dt = (1.0/13.3333334)*dx/np.max(1/np.sqrt(mag_permi*elec_permi))
+        print(f"dt is: {dt}")
 
     length = int(max_time/dt)
     lenx = conductivity.shape[0]
@@ -122,6 +124,7 @@ def solve_electromagnetic_equation(
         dx=dx,
         pml=pml_layer,
         freq=freq, 
+        current=current
     )
 
     times = np.array([visu_dt*dt*i for i in range(array.shape[0])])

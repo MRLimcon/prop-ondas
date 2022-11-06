@@ -191,7 +191,16 @@ def make_coil(X: np.ndarray, Y: np.ndarray, Z: np.ndarray, dx: float, coil_radiu
         ax = plt.figure().add_subplot(projection='3d')
         ax.quiver(X, Y, Z,
             derivative[:, :, :, 0], derivative[:, :, :, 1], derivative[:, :, :, 2], cmap = cm.coolwarm)
-        plt.title("Coil")
+        plt.title("Coil - current direction")
+        plt.show()
+
+        fig = plt.figure()
+        ax = fig.add_subplot(projection='3d')
+        print_format = format[:, :, :, 0].astype(bool)
+        colors = np.empty(X.shape, dtype=object)
+        colors[print_format] = 'red'
+        ax.voxels(print_format, facecolors=colors, alpha=1)
+        plt.title("Coil - format")
         plt.show()
     
     return format, derivative

@@ -13,8 +13,7 @@ freq = 2
 print("started")
 X, Y, Z = utils.create_3d_space(x_max, y_max, z_max, dx)
 
-utils.make_coil(X, Y, Z, dx, 0.05, 1, [0,0,0], np.pi/4, True)
-exit()
+ew_format, ew = utils.make_coil(X, Y, Z, dx, 0.05, 0.3, [0,0,0], np.pi/4)
 
 environ_params = [
     {
@@ -77,13 +76,6 @@ environ_params = [
 ]
 pml = environment_engine.create_3d_environment(X, Y, Z, dx, environ_params)
 
-shape = list(electric_permittivity.shape)
-shape.append(3)
-ew = np.zeros(shape)
-ew_format = np.zeros(shape, dtype=bool)
-ew[int(shape[0]/2), int(shape[1]/2), int(shape[2]/2), 1] = 1
-ew_format[int(shape[0]/2), int(shape[1]/2), int(shape[2]/2), 1] = True
-
 
 print("Starting simulation")
 
@@ -97,8 +89,7 @@ dt, array_t, result = solve_electromagnetic_equation(
     max_time=t_max,
     freq=1,
     pml_layer=pml,
-    visu_steps=150,
-    dt=0.005
+    visu_steps=150
 )
 print("Simulation ended")
 

@@ -1,7 +1,7 @@
 module utils
     implicit none
 
-    real, parameter :: pi = 3.1415926535
+    real, parameter :: pi = 3.1415926535, shift(2) = (/0.5, -0.5/)
     integer, parameter :: turn_const = 50
     
 contains
@@ -176,48 +176,71 @@ contains
         real, intent(in) :: dx, radius, radius_b, center(3), declination
         real, intent(inout) :: coil_derivative(lenx, leny, lenz, 3)
         real :: distances(lenx, leny, lenz), f_distances(lenx, leny, lenz), l_distances(lenx, leny, lenz)
-        real :: point(3), f_point(3), l_point(3), derivative(3), vec_size
-        integer :: steps, i
+        real :: point(3), f_point(3), l_point(3), derivative(3), vec_size, vec_sizes(lenx, leny, lenz)
+        integer :: steps, i, j, k, l
         logical :: local_points(lenx, leny, lenz)
         logical, intent(inout) :: coil_format(lenx, leny, lenz, 3)
 
-        steps = (2*pi + dx)/dx
+        steps = (2*pi)/dx
         coil_format = .False.
         coil_derivative = 0
 
-        do i = 0, steps
-            if ( i == 0 ) then
-                point = ring(radius, declination, i*dx) + center
-                f_point = ring(radius, declination, (i*dx)+dx) + center
-                l_point = ring(radius, declination, (i*dx)-dx) + center
+        do j = 1, 2
+            do k = 1, 2
+                do l = 1, 2
 
-                distances = sqrt(((X-point(1))**2) + ((Y-point(2))**2) + ((Z-point(3))**2))
-                f_distances = sqrt(((X-f_point(1))**2) + ((Y-f_point(2))**2) + ((Z-f_point(3))**2))
-                l_distances = sqrt(((X-l_point(1))**2) + ((Y-l_point(2))**2) + ((Z-l_point(3))**2))
-            else
-                f_point = ring(radius, declination, (i*dx)+dx) + center
-                f_distances = sqrt(((X-f_point(1))**2) + ((Y-f_point(2))**2) + ((Z-f_point(3))**2))
-            end if
+                    do i = 0, steps
 
-            local_points = distances <= radius_b .and. distances <= f_distances .and. distances <= l_distances
+                        if ( i == 0 ) then
+                            point = ring(radius, declination, i*dx) + center
+                            f_point = ring(radius, declination, (i*dx)+dx) + center
+                            l_point = ring(radius, declination, (i*dx)-dx) + center
+            
+                            distances = sqrt(((X-point(1) + (shift(j)*dx))**2) + ((Y-point(2) + (shift(k)*dx))**2) &
+                                + ((Z-point(3) + (shift(l)*dx))**2))
+                            f_distances = sqrt(((X-f_point(1) + (shift(j)*dx))**2) + ((Y-f_point(2) + (shift(k)*dx))**2) &
+                                + ((Z-f_point(3) + (shift(l)*dx))**2))
+                            l_distances = sqrt(((X-l_point(1) + (shift(j)*dx))**2) + ((Y-l_point(2) + (shift(k)*dx))**2) &
+                                + ((Z-l_point(3) + (shift(l)*dx))**2))
+                        else
+                            f_point = ring(radius, declination, (i*dx)+dx) + center
+                            f_distances = sqrt(((X-f_point(1) + (shift(j)*dx))**2) + ((Y-f_point(2) + (shift(k)*dx))**2) &
+                                + ((Z-f_point(3) + (shift(l)*dx))**2))
+                        end if
+            
+                        local_points = distances <= radius_b .and. distances < f_distances .and. distances < l_distances
+            
+                        derivative = ring_derivative(radius, declination, i*dx)
+                        vec_size = sqrt((derivative(1)**2) + (derivative(2)**2) + (derivative(3)**2))
+                        derivative = derivative/vec_size
+            
+                        where(local_points) coil_derivative(:, :, :, 1) = coil_derivative(:, :, :, 1) + derivative(1)
+                        where(local_points) coil_derivative(:, :, :, 2) = coil_derivative(:, :, :, 2) + derivative(2)
+                        where(local_points) coil_derivative(:, :, :, 3) = coil_derivative(:, :, :, 3) + derivative(3)
+            
+                        coil_format(:, :, :, 1) = coil_format(:, :, :, 1) .or. local_points
+                        coil_format(:, :, :, 2) = coil_format(:, :, :, 2) .or. local_points
+                        coil_format(:, :, :, 3) = coil_format(:, :, :, 3) .or. local_points
+            
+                        l_point = point
+                        point = f_point
+                        l_distances = distances
+                        distances = f_distances
 
-            derivative = ring_derivative(radius, declination, i*dx)
-            vec_size = sqrt((derivative(1)**2) + (derivative(2)**2) + (derivative(3)**2))
-            derivative = derivative/vec_size
+                    end do
 
-            where(local_points) coil_derivative(:, :, :, 1) = derivative(1)
-            where(local_points) coil_derivative(:, :, :, 2) = derivative(2)
-            where(local_points) coil_derivative(:, :, :, 3) = derivative(3)
-
-            coil_format(:, :, :, 1) = coil_format(:, :, :, 1) .or. local_points
-            coil_format(:, :, :, 2) = coil_format(:, :, :, 2) .or. local_points
-            coil_format(:, :, :, 3) = coil_format(:, :, :, 3) .or. local_points
-
-            l_point = point
-            point = f_point
-            l_distances = distances
-            distances = f_distances
+                end do
+            end do
         end do
+
+        vec_sizes = sqrt((coil_derivative(:, :, :, 1)**2) + (coil_derivative(:, :, :, 2)**2) &
+            + (coil_derivative(:, :, :, 3)**2))
+
+        where(vec_sizes > 8) coil_derivative(:, :, :, 1) = coil_derivative(:, :, :, 1)*8/vec_sizes
+        where(vec_sizes > 8) coil_derivative(:, :, :, 2) = coil_derivative(:, :, :, 2)*8/vec_sizes
+        where(vec_sizes > 8) coil_derivative(:, :, :, 3) = coil_derivative(:, :, :, 3)*8/vec_sizes
+
+        coil_derivative = coil_derivative*(1.0/8.0)
 
     end subroutine make_ring_coil
 

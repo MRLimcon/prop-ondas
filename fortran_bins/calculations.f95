@@ -149,7 +149,7 @@ contains
 
         s(1, :, :, :) = solution
 
-        do i = 1, 4
+        runge_loop: do i = 1, 4
 
             if ( i == 1 ) then
                 j = 1
@@ -179,15 +179,13 @@ contains
                     dx, s(j, :, lower-1:upper+1, 2))
             k_runge(i, :, lower:upper, 2) = wave_accel
 
+            if ( i == 4 ) then
+                exit runge_loop
+            end if
+
             v(i, :, :, :) = velocity + (k_runge(i, :, :, :)*effective_dt)
             s(i, :, :, :) = solution + (v(i, :, :, :)*effective_dt) + (k_runge(i, :, :, :)*(effective_dt**2)/2)
-
-            if ( i == 1 .or. i == 4 ) then
-                k_runge(i, :, :, :) = k_runge(i, :, :, :)*dt
-            else 
-                k_runge(i, :, :, :) = k_runge(i, :, :, :)*dt/2
-            end if
-        end do
+        end do runge_loop
 
         runge_accel = (k_runge(1, :, :, :) + (2*k_runge(2, :, :, :)) &
                 + (2*k_runge(3, :, :, :)) + k_runge(4, :, :, :))/6
@@ -223,8 +221,8 @@ contains
         allocate(right_derivative(lenx, leny-upper+1, 2))
         allocate(right_accel(lenx, leny-upper+1, 2))
 
-        allocate(v(4, lenx, leny, 2))
-        allocate(s(4, lenx, leny, 2))
+        allocate(v(3, lenx, leny, 2))
+        allocate(s(3, lenx, leny, 2))
         allocate(k_runge(4, lenx, leny, 2))
         allocate(runge_accel(lenx, leny, 2))
 
@@ -250,8 +248,8 @@ contains
             call runge(lenx, leny, mu, l, dt, dx, lower, upper, solution, velocity)
 
             acceleration = runge_accel
-            velocity = velocity + (acceleration)
-            solution = solution + (velocity*dt) + (acceleration*dt/2)
+            velocity = velocity + (acceleration*dt)
+            solution = solution + (velocity*dt) + (acceleration*(dt**2 /2))
 
             if ( i <= ew_len ) then
                 solution(half_lenx, half_leny, :) = ew(i, :)
@@ -357,21 +355,11 @@ contains
             ke_runge(i, :, :, :, 3) = (curl_obj(:, :, :, 3)*c_squared) - (condu_over_permi*se_runge(j, :, :, :, 3))
 
             if ( i == 4 ) then
-                kb_runge(i, :, :, :, :) = kb_runge(i, :, :, :, :)*dt
-                ke_runge(i, :, :, :, :) = ke_runge(i, :, :, :, :)*dt
                 exit runge_loop
             end if
 
             se_runge(i, :, :, :, :) = E + (effective_dt*ke_runge(i, :, :, :, :))
             sb_runge(i, :, :, :, :) = B + (effective_dt*kb_runge(i, :, :, :, :))
-
-            if ( i == 1 ) then
-                kb_runge(i, :, :, :, :) = kb_runge(i, :, :, :, :)*dt
-                ke_runge(i, :, :, :, :) = ke_runge(i, :, :, :, :)*dt
-            else 
-                kb_runge(i, :, :, :, :) = kb_runge(i, :, :, :, :)*dt/2
-                ke_runge(i, :, :, :, :) = ke_runge(i, :, :, :, :)*dt/2
-            end if
 
         end do runge_loop
 
@@ -383,12 +371,12 @@ contains
     end subroutine runge
 
     function electromagnetic_3d(lenx, leny, lenz, sol_len, ew, ew_format, &
-                ar_len, ar_steps, conductivity, elec_permi, mag_permi, dx, dt, freq, pml) result(array)
+                ar_len, ar_steps, conductivity, elec_permi, mag_permi, dx, dt, freq, pml, current) result(array)
         implicit none
 
         integer, intent(in) :: lenx, leny, lenz, ar_len, ar_steps, sol_len
         logical, intent(in) :: ew_format(lenx, leny, lenz, 3)
-        real, intent(in) :: ew(lenx, leny, lenz, 3), conductivity(lenx, leny, lenz), dx, dt
+        real, intent(in) :: ew(lenx, leny, lenz, 3), conductivity(lenx, leny, lenz), dx, dt, current
         real, intent(in) :: elec_permi(lenx, leny, lenz), mag_permi(lenx, leny, lenz), freq, pml(lenx, leny, lenz)
         real :: array(ar_len, lenx, leny, lenz, 3), E(lenx, leny, lenz, 3), B(lenx, leny, lenz, 3), k
         integer :: i, j
@@ -413,10 +401,10 @@ contains
         do i = 2, sol_len
             call runge(lenx, leny, lenz, B, E, dx, dt, pml)
             
-            B = B + b_runge
-            E = E + e_runge
+            B = B + (b_runge*dt)
+            E = E + (e_runge*dt)
 
-            where(ew_format) E = ew(:, :, :, :)*(sin(dt*2*pi*freq*(i-1)))
+            where(ew_format) E = ew(:, :, :, :)*(current*sin(dt*2*pi*freq*(i-1)))
 
             if ( mod(i, ar_steps) == 0 .and. j <= ar_len ) then
                 k = (100.0*j/ar_len)
