@@ -205,8 +205,61 @@ def make_coil(X: np.ndarray, Y: np.ndarray, Z: np.ndarray, dx: float, coil_radiu
     
     return format, derivative
 
+def get_electromagnetic_response(array_t: np.ndarray, X: np.ndarray, Y: np.ndarray, Z: np.ndarray,
+        array: np.ndarray, dt: float, dx: float, coil_params: list[dict], show_response: bool = True):
+
+    response = pd.DataFrame()
+    response["Times (s)"] = array_t 
+    length = len(array)
+
+    for param in coil_params:
+        radius = param["radius"]
+        r_radius = param["ring_radius"]
+        declination = param["declination"]
+        center = [param["center"][0], param["center"][1], param["center"][2]]
+
+        shape = X.shape
+        format = utils.utils.make_logical_array(lenx=shape[0], leny=shape[1], lenz=shape[2])
+        derivative = utils.utils.make_array(lenx=shape[0], leny=shape[1], lenz=shape[2])
+
+        utils.utils.make_ring_coil(
+            lenx=derivative.shape[0],
+            leny=derivative.shape[1],
+            lenz=derivative.shape[2],
+            x=X,
+            y=Y,
+            z=Z,
+            dx=dx/3,
+            radius_b=r_radius,
+            center=center,
+            radius=radius,
+            declination=declination,
+            coil_format=format,
+            coil_derivative=derivative,
+        )
+
+        result = utils.utils.get_coil_response(
+            lenx=derivative.shape[0],
+            leny=derivative.shape[1],
+            lenz=derivative.shape[2],
+            steps=length, 
+            derivative=derivative, 
+            format=format, 
+            array=array
+        )
+
+        response[f"center = {center}, declination = {declination/np.pi} pi"] = result
+
+        if show_response:
+            plt.plot(array_t, result)
+            plt.title(f"coil: center = {center}, declination = {declination/np.pi} pi")
+            plt.show()
+
+    return response
+
+
 def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float, 
-    dx: float, distance:float = 0.12, print_freqs: bool = False, save_data: bool = False) -> None:
+        dx: float, distance:float = 0.12, print_freqs: bool = False, save_data: bool = False) -> None:
     """
         Generate the receiver responses along the borehole
     """

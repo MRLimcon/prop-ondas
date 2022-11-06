@@ -1,7 +1,7 @@
 module utils
     implicit none
 
-    real, parameter :: pi = 3.1415926535, shift(2) = (/0.5, -0.5/)
+    real, parameter :: pi = 3.1415926535, shift(2) = (/0.25, -0.25/)
     integer, parameter :: turn_const = 50
     
 contains
@@ -285,5 +285,18 @@ contains
 
         array = .False.
     end function make_logical_array
+
+    function get_coil_response(lenx, leny, lenz, steps, derivative, format, array) result(result_array)
+        integer, intent(in) :: lenx, leny, lenz, steps
+        real, intent(in) :: derivative(lenx, leny, lenz, 3), array(steps, lenx, leny, lenz, 3)
+        logical, intent(in) :: format(lenx, leny, lenz, 3)
+        real :: result_array(steps)
+        integer :: i
+
+        do concurrent (i = 1: steps)
+            result_array(i) = sum(pack(derivative*array(i, :, :, :, :), format))           
+        end do
+
+    end function get_coil_response
 
 end module utils

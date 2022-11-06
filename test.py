@@ -4,7 +4,7 @@ import utils
 
 # valores finitos para solução
 dx = 0.1
-t_max = 20
+t_max = 40
 x_max = 6
 y_max = 6
 z_max = 6
@@ -13,17 +13,17 @@ freq = 2
 print("started")
 X, Y, Z = utils.create_3d_space(x_max, y_max, z_max, dx)
 
-ew_format, ew = utils.make_coil(X, Y, Z, dx, 0.05, 0.3, [0,0,0], np.pi/4)
+ew_format, ew = utils.make_coil(X, Y, Z, dx, 0.05, 0.3, [0,0,0], 0)
 
 environ_params = [
     {
         "type": "base",
-        "constant": 1
+        "constant": 0.7
     },
     {
         "type": "solid_cilinder",
         "constant": 1.2,
-        "radius": 1,
+        "radius": 0.5,
         "height": 4,
         "center": [0, 0, 0]
     }
@@ -33,12 +33,12 @@ magnetic_permittivity = environment_engine.create_3d_environment(X, Y, Z, dx, en
 environ_params = [
     {
         "type": "base",
-        "constant": 1
+        "constant": 0.7
     },
     {
         "type": "solid_cilinder",
         "constant": 1.2,
-        "radius": 1,
+        "radius": 0.5,
         "height": 4,
         "center": [0, 0, 0]
     }
@@ -48,13 +48,13 @@ electric_permittivity = environment_engine.create_3d_environment(X, Y, Z, dx, en
 environ_params = [
     {
         "type": "base",
-        "constant": 0.75
+        "constant": 0.7
     },
     {
         "type": "solid_cilinder",
         "constant": 0,
-        "radius": 1,
-        "height": 4,
+        "radius": 0.5,
+        "height": 10,
         "center": [0, 0, 0]
     }
 ]
@@ -63,7 +63,7 @@ conductivity = environment_engine.create_3d_environment(X, Y, Z, dx, environ_par
 environ_params = [
     {
         "type": "base",
-        "constant": 1.5
+        "constant": 3
     },
     {
         "type": "solid_cuboid",
@@ -89,10 +89,27 @@ dt, array_t, result = solve_electromagnetic_equation(
     max_time=t_max,
     freq=1,
     pml_layer=pml,
-    visu_steps=150
+    visu_steps=400
 )
 print("Simulation ended")
 
 utils.plot_f_l_frames(result, X, Y, Z)
+
+response_params = [
+    {
+        "radius": 0.3,
+        "ring_radius": 0.05,
+        "declination": 0,
+        "center": [0, 0, -1]
+    },
+    {
+        "radius": 0.3,
+        "ring_radius": 0.05,
+        "declination": np.pi/2,
+        "center": [0, 0, -1]
+    },
+]
+
+utils.get_electromagnetic_response(array_t, X, Y, Z, result, dt, dx, response_params, True)
 #utils.plot_response(array_t, result, dt, dx, save_data=True)#, print_freqs=True)
 # utils.animate_simulation(array_t, result, 150, file_name="movie.mp4")
