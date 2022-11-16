@@ -398,7 +398,7 @@ contains
         c_squared = (1/(mag_permi*elec_permi))
         condu_over_permi = (conductivity/elec_permi)
 
-        do i = 2, sol_len
+        main_loop: do i = 2, sol_len
             call runge(lenx, leny, lenz, B, E, dx, dt, pml)
             
             B = B + (b_runge*dt)
@@ -413,9 +413,10 @@ contains
                 array(j, :, :, :, :) = E
                 j = j + 1
             else if ( j > ar_len ) then
-                exit
+                exit main_loop
             end if
-        end do
+
+        end do main_loop
 
         deallocate(kb_runge)
         deallocate(ke_runge)

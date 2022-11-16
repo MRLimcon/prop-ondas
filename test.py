@@ -13,7 +13,7 @@ freq = 2
 print("started")
 X, Y, Z = utils.create_3d_space(x_max, y_max, z_max, dx)
 
-ew_format, ew = utils.make_coil(X, Y, Z, dx, 0.05, 0.3, [0,0,0], 0)
+ew_format, ew = utils.make_coil(X, Y, Z, dx, 0.033, 0.3, [0,0,0], np.pi/2)
 
 environ_params = [
     {
@@ -89,27 +89,18 @@ dt, array_t, result = solve_electromagnetic_equation(
     max_time=t_max,
     freq=1,
     pml_layer=pml,
-    visu_steps=400
+    visu_steps=50
 )
 print("Simulation ended")
 
 utils.plot_f_l_frames(result, X, Y, Z)
 
-response_params = [
-    {
-        "radius": 0.3,
-        "ring_radius": 0.05,
-        "declination": 0,
-        "center": [0, 0, -1]
-    },
-    {
-        "radius": 0.3,
-        "ring_radius": 0.05,
-        "declination": np.pi/2,
-        "center": [0, 0, -1]
-    },
-]
+response_params = {
+    "radius": 0.3,
+    "ring_radius": 0.05,
+    "center": [0, 0, -1]
+}
 
-utils.get_electromagnetic_response(array_t, X, Y, Z, result, dt, dx, response_params, True)
+utils.get_electromagnetic_response(array_t, X, Y, Z, result, dx, response_params, True)
 #utils.plot_response(array_t, result, dt, dx, save_data=True)#, print_freqs=True)
 # utils.animate_simulation(array_t, result, 150, file_name="movie.mp4")

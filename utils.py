@@ -178,7 +178,8 @@ def make_coil(X: np.ndarray, Y: np.ndarray, Z: np.ndarray, dx: float, coil_radiu
         x=X,
         y=Y,
         z=Z,
-        dx=dx/3,
+        dx=dx,
+        dt=dx/8,
         radius_b=coil_radius,
         center=center,
         radius=radius,
@@ -206,37 +207,63 @@ def make_coil(X: np.ndarray, Y: np.ndarray, Z: np.ndarray, dx: float, coil_radiu
     return format, derivative
 
 def get_electromagnetic_response(array_t: np.ndarray, X: np.ndarray, Y: np.ndarray, Z: np.ndarray,
-        array: np.ndarray, dt: float, dx: float, coil_params: list[dict], show_response: bool = True):
+        array: np.ndarray, dx: float, params: dict, show_response: bool = True):
 
     response = pd.DataFrame()
-    response["Times (s)"] = array_t 
+    response["Time (s)"] = array_t 
     length = len(array)
+    radius = params["radius"]
+    r_radius = params["ring_radius"]
+    center = [params["center"][0], params["center"][1], params["center"][2]]
+    shape = X.shape
+    dict_name = {
+        0: "X",
+        1: "Y",
+        2: "Z"
+    }
 
-    for param in coil_params:
-        radius = param["radius"]
-        r_radius = param["ring_radius"]
-        declination = param["declination"]
-        center = [param["center"][0], param["center"][1], param["center"][2]]
+    for i in range(3):
+        if i == 2:
+            declination = 0
+        else:
+            declination = np.pi/2
 
-        shape = X.shape
-        format = utils.utils.make_logical_array(lenx=shape[0], leny=shape[1], lenz=shape[2])
-        derivative = utils.utils.make_array(lenx=shape[0], leny=shape[1], lenz=shape[2])
+        if i == 1:
+            used_shape = [shape[1], shape[0], shape[2]]
+            used_center = [center[1], center[0], center[2]]
+            used_y = utils.utils.float_transpose(lenx=shape[0], leny=shape[1], lenz=shape[2], array=X)
+            used_x = utils.utils.float_transpose(lenx=shape[0], leny=shape[1], lenz=shape[2], array=Y)
+            used_z = utils.utils.float_transpose(lenx=shape[0], leny=shape[1], lenz=shape[2], array=Z)
+        else:
+            used_shape = shape
+            used_center = center
+            used_x = X
+            used_y = Y
+            used_z = Z
+
+        format = utils.utils.make_logical_array(lenx=used_shape[0], leny=used_shape[1], lenz=used_shape[2])
+        derivative = utils.utils.make_array(lenx=used_shape[0], leny=used_shape[1], lenz=used_shape[2])
 
         utils.utils.make_ring_coil(
-            lenx=derivative.shape[0],
-            leny=derivative.shape[1],
-            lenz=derivative.shape[2],
-            x=X,
-            y=Y,
-            z=Z,
-            dx=dx/3,
+            lenx=used_shape[0],
+            leny=used_shape[1],
+            lenz=used_shape[2],
+            x=used_x,
+            y=used_y,
+            z=used_z,
+            dx=dx,
+            dt=dx/8,
             radius_b=r_radius,
-            center=center,
+            center=used_center,
             radius=radius,
             declination=declination,
             coil_format=format,
             coil_derivative=derivative,
         )
+
+        if i == 1:
+            format = utils.utils.logical_3d_transpose(lenx=shape[1], leny=shape[0], lenz=shape[2], array=format)
+            derivative = utils.utils.float_3d_transpose(lenx=shape[1], leny=shape[0], lenz=shape[2], array=derivative)
 
         result = utils.utils.get_coil_response(
             lenx=derivative.shape[0],
@@ -248,11 +275,11 @@ def get_electromagnetic_response(array_t: np.ndarray, X: np.ndarray, Y: np.ndarr
             array=array
         )
 
-        response[f"center = {center}, declination = {declination/np.pi} pi"] = result
+        response[f"center = {center}, {dict_name[i]}"] = result
 
         if show_response:
             plt.plot(array_t, result)
-            plt.title(f"coil: center = {center}, declination = {declination/np.pi} pi")
+            plt.title(f"{dict_name[i]}")
             plt.show()
 
     return response

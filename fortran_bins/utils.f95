@@ -169,11 +169,11 @@ contains
         points(3) = radius*cos(t)*sin(declination)
     end function ring_derivative
 
-    subroutine make_ring_coil(lenx, leny, lenz, X, Y, Z, dx, center, radius, radius_b, &
+    subroutine make_ring_coil(lenx, leny, lenz, X, Y, Z, dx, dt, center, radius, radius_b, &
                 declination, coil_format, coil_derivative)
         integer, intent(in) :: lenx, leny, lenz
         real, intent(in) :: X(lenx, leny, lenz), Y(lenx, leny, lenz), Z(lenx, leny, lenz)
-        real, intent(in) :: dx, radius, radius_b, center(3), declination
+        real, intent(in) :: dx, dt, radius, radius_b, center(3), declination
         real, intent(inout) :: coil_derivative(lenx, leny, lenz, 3)
         real :: distances(lenx, leny, lenz), f_distances(lenx, leny, lenz), l_distances(lenx, leny, lenz)
         real :: point(3), f_point(3), l_point(3), derivative(3), vec_size, vec_sizes(lenx, leny, lenz)
@@ -181,7 +181,7 @@ contains
         logical :: local_points(lenx, leny, lenz)
         logical, intent(inout) :: coil_format(lenx, leny, lenz, 3)
 
-        steps = (2*pi)/dx
+        steps = (2*pi)/dt
         coil_format = .False.
         coil_derivative = 0
 
@@ -192,9 +192,9 @@ contains
                     do i = 0, steps
 
                         if ( i == 0 ) then
-                            point = ring(radius, declination, i*dx) + center
-                            f_point = ring(radius, declination, (i*dx)+dx) + center
-                            l_point = ring(radius, declination, (i*dx)-dx) + center
+                            point = ring(radius, declination, i*dt) + center
+                            f_point = ring(radius, declination, (i*dt)+dt) + center
+                            l_point = ring(radius, declination, (i*dt)-dt) + center
             
                             distances = sqrt(((X-point(1) + (shift(j)*dx))**2) + ((Y-point(2) + (shift(k)*dx))**2) &
                                 + ((Z-point(3) + (shift(l)*dx))**2))
@@ -203,14 +203,14 @@ contains
                             l_distances = sqrt(((X-l_point(1) + (shift(j)*dx))**2) + ((Y-l_point(2) + (shift(k)*dx))**2) &
                                 + ((Z-l_point(3) + (shift(l)*dx))**2))
                         else
-                            f_point = ring(radius, declination, (i*dx)+dx) + center
+                            f_point = ring(radius, declination, (i*dt)+dt) + center
                             f_distances = sqrt(((X-f_point(1) + (shift(j)*dx))**2) + ((Y-f_point(2) + (shift(k)*dx))**2) &
                                 + ((Z-f_point(3) + (shift(l)*dx))**2))
                         end if
             
                         local_points = distances <= radius_b .and. distances < f_distances .and. distances < l_distances
             
-                        derivative = ring_derivative(radius, declination, i*dx)
+                        derivative = ring_derivative(radius, declination, i*dt)
                         vec_size = sqrt((derivative(1)**2) + (derivative(2)**2) + (derivative(3)**2))
                         derivative = derivative/vec_size
             
@@ -298,5 +298,47 @@ contains
         end do
 
     end function get_coil_response
+
+    function logical_3d_transpose(lenx, leny, lenz, array) result(result_array)
+        integer, intent(in) :: lenx, leny, lenz
+        logical, intent(in) :: array(lenx, leny, lenz, 3)
+        logical :: result_array(leny, lenx, lenz, 3)
+        integer :: i, j
+
+        do concurrent(i = 1: leny)
+            do j = 1, lenz
+                result_array(i, :, j, :) = array(:, i, j, :)
+            end do
+        end do
+
+    end function logical_3d_transpose
+
+    function float_transpose(lenx, leny, lenz, array) result(result_array)
+        integer, intent(in) :: lenx, leny, lenz
+        real, intent(in) :: array(lenx, leny, lenz)
+        real :: result_array(leny, lenx, lenz)
+        integer :: i, j
+
+        do concurrent(i = 1: leny)
+            do j = 1, lenz
+                result_array(i, :, j) = array(:, i, j)
+            end do
+        end do
+
+    end function float_transpose
+
+    function float_3d_transpose(lenx, leny, lenz, array) result(result_array)
+        integer, intent(in) :: lenx, leny, lenz
+        real, intent(in) :: array(lenx, leny, lenz, 3)
+        real :: result_array(leny, lenx, lenz, 3)
+        integer :: i, j
+
+        do concurrent(i = 1: leny)
+            do j = 1, lenz
+                result_array(i, :, j, :) = array(:, i, j, :)
+            end do
+        end do
+
+    end function float_3d_transpose
 
 end module utils
