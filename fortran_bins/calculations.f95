@@ -289,12 +289,14 @@ contains
 end module elastodynamic
 
 module electromagnetic
+    use omp_lib
     implicit none
 
     real, allocatable :: kb_runge(:, :, :, :, :), ke_runge(:, :, :, :, :), curl_obj(:, :, :, :)
     real, allocatable :: sb_runge(:, :, :, :, :), se_runge(:, :, :, :, :)
     real, allocatable :: b_runge(:, :, :, :), e_runge(:, :, :, :)
-    real, allocatable :: c_squared(:, :, :), condu_over_permi(:, :, :)
+    real, allocatable :: condu_over_permi(:, :, :, :), used_pml(:, :, :, :)
+    real, allocatable :: inverse_permi(:, :, :, :), inverse_mag(:, :, :, :)
     real, parameter :: pi = 3.1415926535
     
 contains
@@ -318,12 +320,11 @@ contains
 
     end subroutine
 
-    subroutine runge(lenx, leny, lenz, B, E, dx, dt, pml)
+    subroutine runge(lenx, leny, lenz, B, E, dx, dt)
         implicit none
 
         integer, intent(in) :: lenx, leny, lenz
         real, intent(in) :: B(lenx, leny, lenz, 3), E(lenx, leny, lenz, 3), dx, dt
-        real, intent(in) :: pml(lenx, leny, lenz)
         real :: effective_dt
         integer :: i, j
 
@@ -345,14 +346,10 @@ contains
             end if
 
             call curl(lenx, leny, lenz, se_runge(j, :, :, :, :), dx)
-            kb_runge(i, :, :, :, 1) =  - (curl_obj(:, :, :, 1)) - (pml*sb_runge(j, :, :, :, 1))
-            kb_runge(i, :, :, :, 2) =  - (curl_obj(:, :, :, 2)) - (pml*sb_runge(j, :, :, :, 2))
-            kb_runge(i, :, :, :, 3) =  - (curl_obj(:, :, :, 3)) - (pml*sb_runge(j, :, :, :, 3))
+            kb_runge(i, :, :, :, :) =  - (curl_obj(:, :, :, :)*inverse_mag) - (used_pml*sb_runge(j, :, :, :, :))
 
             call curl(lenx, leny, lenz, sb_runge(j, :, :, :, :), dx)
-            ke_runge(i, :, :, :, 1) = (curl_obj(:, :, :, 1)*c_squared) - (condu_over_permi*se_runge(j, :, :, :, 1))
-            ke_runge(i, :, :, :, 2) = (curl_obj(:, :, :, 2)*c_squared) - (condu_over_permi*se_runge(j, :, :, :, 2))
-            ke_runge(i, :, :, :, 3) = (curl_obj(:, :, :, 3)*c_squared) - (condu_over_permi*se_runge(j, :, :, :, 3))
+            ke_runge(i, :, :, :, :) = (curl_obj*inverse_permi) - (condu_over_permi*se_runge(j, :, :, :, :))
 
             if ( i == 4 ) then
                 exit runge_loop
@@ -392,17 +389,34 @@ contains
         allocate(b_runge(lenx, leny, lenz, 3))
         allocate(e_runge(lenx, leny, lenz, 3))
         allocate(curl_obj(lenx, leny, lenz, 3))
-        allocate(c_squared(lenx, leny, lenz))
-        allocate(condu_over_permi(lenx, leny, lenz))
+        allocate(inverse_permi(lenx, leny, lenz, 3))
+        allocate(inverse_mag(lenx, leny, lenz, 3))
+        allocate(used_pml(lenx, leny, lenz, 3))
+        allocate(condu_over_permi(lenx, leny, lenz, 3))
 
-        c_squared = (1/(mag_permi*elec_permi))
-        condu_over_permi = (conductivity/elec_permi)
+        inverse_mag(:, :, :, 1) = 1/mag_permi
+        inverse_mag(:, :, :, 2) = 1/mag_permi
+        inverse_mag(:, :, :, 3) = 1/mag_permi
+        condu_over_permi(:, :, :, 1) = (conductivity/elec_permi)
+        condu_over_permi(:, :, :, 2) = (conductivity/elec_permi)
+        condu_over_permi(:, :, :, 3) = (conductivity/elec_permi)
+        inverse_permi(:, :, :, 1) = 1/elec_permi
+        inverse_permi(:, :, :, 2) = 1/elec_permi
+        inverse_permi(:, :, :, 3) = 1/elec_permi
+        used_pml(:, :, :, 1) = (pml/mag_permi)
+        used_pml(:, :, :, 2) = (pml/mag_permi)
+        used_pml(:, :, :, 3) = (pml/mag_permi)
 
         main_loop: do i = 2, sol_len
-            call runge(lenx, leny, lenz, B, E, dx, dt, pml)
+            call runge(lenx, leny, lenz, B, E, dx, dt)
             
             B = B + (b_runge*dt)
             E = E + (e_runge*dt)
+
+            if ( i < 100 ) then
+                write(*,*) maxval(e_runge), minval(e_runge)
+                write(*,*) maxval(b_runge), minval(b_runge)
+            end if
 
             where(ew_format) E = ew(:, :, :, :)*(current*sin(dt*2*pi*freq*(i-1)))
 
@@ -425,7 +439,9 @@ contains
         deallocate(b_runge)
         deallocate(e_runge)
         deallocate(curl_obj)
-        deallocate(c_squared)
+        deallocate(inverse_permi)
+        deallocate(inverse_mag)
+        deallocate(used_pml)
         deallocate(condu_over_permi)
 
     

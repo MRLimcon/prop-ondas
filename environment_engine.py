@@ -353,7 +353,7 @@ def create_3d_environment(X: np.ndarray, Y: np.ndarray, Z: np.ndarray, steps: fl
                     x=X,
                     y=Y,
                     z=Z,
-                    dx=steps/3,
+                    dx=steps/(3*radius),
                     radius_b=r_radius,
                     center=center,
                     radius=radius,

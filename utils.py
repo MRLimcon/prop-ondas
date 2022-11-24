@@ -165,28 +165,50 @@ def plot_f_l_frames(array: np.ndarray, X=None, Y=None, Z=None) -> None:
         plt.show()
 
 def make_coil(X: np.ndarray, Y: np.ndarray, Z: np.ndarray, dx: float, coil_radius: float, 
-            radius: float, center: list[float], declination: float, show_env: bool = False):
+            radius: float, center: list[float], declination: float, voltage: float = 1., show_env: bool = False):
 
     shape = X.shape
+
+    cent = [(center[0] - X[0,0,0])/dx, (center[1] - Y[0,0,0])/dx, (center[2] - Z[0,0,0])/dx]
+    cent = [int(val) for val in cent]
+    zone = [
+        cent[0]-int((radius+coil_radius)/dx)-2, cent[0]+int((radius+coil_radius)/dx)+2,
+        cent[1]-int((radius+coil_radius)/dx)-2, cent[1]+int((radius+coil_radius)/dx)+2,
+        cent[2]-int((radius+coil_radius)/dx)-2, cent[2]+int((radius+coil_radius)/dx)+2
+    ]
+    local_format = utils.utils.make_logical_array(lenx=zone[1]-zone[0], leny=zone[3]-zone[2], lenz=zone[5]-zone[4])
+    local_derivative = utils.utils.make_array(lenx=zone[1]-zone[0], leny=zone[3]-zone[2], lenz=zone[5]-zone[4])
+    
     format = utils.utils.make_logical_array(lenx=shape[0], leny=shape[1], lenz=shape[2])
     derivative = utils.utils.make_array(lenx=shape[0], leny=shape[1], lenz=shape[2])
 
     utils.utils.make_ring_coil(
-        lenx=derivative.shape[0],
-        leny=derivative.shape[1],
-        lenz=derivative.shape[2],
-        x=X,
-        y=Y,
-        z=Z,
+        lenx=zone[1]-zone[0],
+        leny=zone[3]-zone[2],
+        lenz=zone[5]-zone[4],
+        x=X[zone[0]:zone[1], zone[2]:zone[3], zone[4]:zone[5]],
+        y=Y[zone[0]:zone[1], zone[2]:zone[3], zone[4]:zone[5]],
+        z=Z[zone[0]:zone[1], zone[2]:zone[3], zone[4]:zone[5]],
         dx=dx,
-        dt=dx/8,
+        dt=dx/(10*radius),
         radius_b=coil_radius,
         center=center,
         radius=radius,
         declination=declination,
-        coil_format=format,
-        coil_derivative=derivative,
+        coil_format=local_format,
+        coil_derivative=local_derivative,
     )
+
+    derivative[zone[0]:zone[1], zone[2]:zone[3], zone[4]:zone[5], :] = local_derivative
+    format[zone[0]:zone[1], zone[2]:zone[3], zone[4]:zone[5], :] = local_format
+
+    integral = utils.utils.sum_vals(
+        lenx=derivative.shape[0],
+        leny=derivative.shape[1],
+        lenz=derivative.shape[2],
+        array=derivative
+    )
+    derivative = derivative*(voltage/integral)
 
     if show_env:
         ax = plt.figure().add_subplot(projection='3d')
@@ -207,13 +229,15 @@ def make_coil(X: np.ndarray, Y: np.ndarray, Z: np.ndarray, dx: float, coil_radiu
     return format, derivative
 
 def get_electromagnetic_response(array_t: np.ndarray, X: np.ndarray, Y: np.ndarray, Z: np.ndarray,
-        array: np.ndarray, dx: float, params: dict, show_response: bool = True):
+        array: np.ndarray, dx: float, params: dict, resistivity: float = 0.0000000168, show_response: bool = True):
 
     response = pd.DataFrame()
     response["Time (s)"] = array_t 
     length = len(array)
     radius = params["radius"]
     r_radius = params["ring_radius"]
+    coil_length = 2*np.pi*radius
+    coil_area = np.pi*(r_radius**2)
     center = [params["center"][0], params["center"][1], params["center"][2]]
     shape = X.shape
     dict_name = {
@@ -241,29 +265,50 @@ def get_electromagnetic_response(array_t: np.ndarray, X: np.ndarray, Y: np.ndarr
             used_y = Y
             used_z = Z
 
+        cent = [(used_center[0] - used_x[0,0,0])/dx, (used_center[1] - used_y[0,0,0])/dx, (used_center[2] - used_z[0,0,0])/dx]
+        cent = [int(val) for val in cent]
+        zone = [
+            cent[0]-int((radius+r_radius)/dx)-2, cent[0]+int((radius+r_radius)/dx)+2,
+            cent[1]-int((radius+r_radius)/dx)-2, cent[1]+int((radius+r_radius)/dx)+2,
+            cent[2]-int((radius+r_radius)/dx)-2, cent[2]+int((radius+r_radius)/dx)+2
+        ]
+        local_format = utils.utils.make_logical_array(lenx=zone[1]-zone[0], leny=zone[3]-zone[2], lenz=zone[5]-zone[4])
+        local_derivative = utils.utils.make_array(lenx=zone[1]-zone[0], leny=zone[3]-zone[2], lenz=zone[5]-zone[4])
+        
         format = utils.utils.make_logical_array(lenx=used_shape[0], leny=used_shape[1], lenz=used_shape[2])
         derivative = utils.utils.make_array(lenx=used_shape[0], leny=used_shape[1], lenz=used_shape[2])
 
         utils.utils.make_ring_coil(
-            lenx=used_shape[0],
-            leny=used_shape[1],
-            lenz=used_shape[2],
-            x=used_x,
-            y=used_y,
-            z=used_z,
+            lenx=zone[1]-zone[0],
+            leny=zone[3]-zone[2],
+            lenz=zone[5]-zone[4],
+            x=used_x[zone[0]:zone[1], zone[2]:zone[3], zone[4]:zone[5]],
+            y=used_y[zone[0]:zone[1], zone[2]:zone[3], zone[4]:zone[5]],
+            z=used_z[zone[0]:zone[1], zone[2]:zone[3], zone[4]:zone[5]],
             dx=dx,
-            dt=dx/8,
+            dt=dx/(10*radius),
             radius_b=r_radius,
             center=used_center,
             radius=radius,
             declination=declination,
-            coil_format=format,
-            coil_derivative=derivative,
+            coil_format=local_format,
+            coil_derivative=local_derivative,
         )
+
+        derivative[zone[0]:zone[1], zone[2]:zone[3], zone[4]:zone[5], :] = local_derivative
+        format[zone[0]:zone[1], zone[2]:zone[3], zone[4]:zone[5], :] = local_format
 
         if i == 1:
             format = utils.utils.logical_3d_transpose(lenx=shape[1], leny=shape[0], lenz=shape[2], array=format)
             derivative = utils.utils.float_3d_transpose(lenx=shape[1], leny=shape[0], lenz=shape[2], array=derivative)
+
+        integral = utils.utils.sum_vals(
+            lenx=derivative.shape[0],
+            leny=derivative.shape[1],
+            lenz=derivative.shape[2],
+            array=derivative
+        )
+        derivative = derivative*(coil_length/integral)
 
         result = utils.utils.get_coil_response(
             lenx=derivative.shape[0],
@@ -275,11 +320,17 @@ def get_electromagnetic_response(array_t: np.ndarray, X: np.ndarray, Y: np.ndarr
             array=array
         )
 
+        result = result/(resistivity*(coil_length/coil_area))
+
         response[f"center = {center}, {dict_name[i]}"] = result
 
         if show_response:
             plt.plot(array_t, result)
+            plt.ylabel("Current (A)")
+            plt.xlabel("Time(s)")
             plt.title(f"{dict_name[i]}")
+            plt.legend()
+            plt.tight_layout()
             plt.show()
 
     return response

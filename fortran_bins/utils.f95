@@ -1,7 +1,7 @@
 module utils
     implicit none
 
-    real, parameter :: pi = 3.1415926535, shift(2) = (/0.25, -0.25/)
+    real, parameter :: pi = 3.1415926535, shift(4) = (/1.0/8, 3.0/8, -1.0/8, -3.0/8/)
     integer, parameter :: turn_const = 50
     
 contains
@@ -160,13 +160,13 @@ contains
 
     end function ring
 
-    function ring_derivative(radius, declination, t) result(points)
-        real, intent(in) :: radius, declination, t
+    function ring_derivative(declination, t) result(points)
+        real, intent(in) :: declination, t
         real :: points(3)
 
-        points(1) = -radius*sin(t)
-        points(2) = radius*cos(t)*cos(declination)
-        points(3) = radius*cos(t)*sin(declination)
+        points(1) = -sin(t)
+        points(2) = cos(t)*cos(declination)
+        points(3) = cos(t)*sin(declination)
     end function ring_derivative
 
     subroutine make_ring_coil(lenx, leny, lenz, X, Y, Z, dx, dt, center, radius, radius_b, &
@@ -176,7 +176,7 @@ contains
         real, intent(in) :: dx, dt, radius, radius_b, center(3), declination
         real, intent(inout) :: coil_derivative(lenx, leny, lenz, 3)
         real :: distances(lenx, leny, lenz), f_distances(lenx, leny, lenz), l_distances(lenx, leny, lenz)
-        real :: point(3), f_point(3), l_point(3), derivative(3), vec_size, vec_sizes(lenx, leny, lenz)
+        real :: point(3), f_point(3), l_point(3), derivative(3)
         integer :: steps, i, j, k, l
         logical :: local_points(lenx, leny, lenz)
         logical, intent(inout) :: coil_format(lenx, leny, lenz, 3)
@@ -185,34 +185,29 @@ contains
         coil_format = .False.
         coil_derivative = 0
 
-        do j = 1, 2
-            do k = 1, 2
-                do l = 1, 2
+        do j = 1, 4
+            do k = 1, 4
+                do l = 1, 4
 
                     do i = 0, steps
 
                         if ( i == 0 ) then
                             point = ring(radius, declination, i*dt) + center
-                            f_point = ring(radius, declination, (i*dt)+dt) + center
                             l_point = ring(radius, declination, (i*dt)-dt) + center
             
                             distances = sqrt(((X-point(1) + (shift(j)*dx))**2) + ((Y-point(2) + (shift(k)*dx))**2) &
                                 + ((Z-point(3) + (shift(l)*dx))**2))
-                            f_distances = sqrt(((X-f_point(1) + (shift(j)*dx))**2) + ((Y-f_point(2) + (shift(k)*dx))**2) &
-                                + ((Z-f_point(3) + (shift(l)*dx))**2))
                             l_distances = sqrt(((X-l_point(1) + (shift(j)*dx))**2) + ((Y-l_point(2) + (shift(k)*dx))**2) &
                                 + ((Z-l_point(3) + (shift(l)*dx))**2))
-                        else
-                            f_point = ring(radius, declination, (i*dt)+dt) + center
-                            f_distances = sqrt(((X-f_point(1) + (shift(j)*dx))**2) + ((Y-f_point(2) + (shift(k)*dx))**2) &
-                                + ((Z-f_point(3) + (shift(l)*dx))**2))
                         end if
+
+                        f_point = ring(radius, declination, (i*dt)+dt) + center
+                        f_distances = sqrt(((X-f_point(1) + (shift(j)*dx))**2) + ((Y-f_point(2) + (shift(k)*dx))**2) &
+                            + ((Z-f_point(3) + (shift(l)*dx))**2))
             
                         local_points = distances <= radius_b .and. distances < f_distances .and. distances < l_distances
             
-                        derivative = ring_derivative(radius, declination, i*dt)
-                        vec_size = sqrt((derivative(1)**2) + (derivative(2)**2) + (derivative(3)**2))
-                        derivative = derivative/vec_size
+                        derivative = ring_derivative(declination, i*dt)
             
                         where(local_points) coil_derivative(:, :, :, 1) = coil_derivative(:, :, :, 1) + derivative(1)
                         where(local_points) coil_derivative(:, :, :, 2) = coil_derivative(:, :, :, 2) + derivative(2)
@@ -233,14 +228,7 @@ contains
             end do
         end do
 
-        vec_sizes = sqrt((coil_derivative(:, :, :, 1)**2) + (coil_derivative(:, :, :, 2)**2) &
-            + (coil_derivative(:, :, :, 3)**2))
-
-        where(vec_sizes > 8) coil_derivative(:, :, :, 1) = coil_derivative(:, :, :, 1)*8/vec_sizes
-        where(vec_sizes > 8) coil_derivative(:, :, :, 2) = coil_derivative(:, :, :, 2)*8/vec_sizes
-        where(vec_sizes > 8) coil_derivative(:, :, :, 3) = coil_derivative(:, :, :, 3)*8/vec_sizes
-
-        coil_derivative = coil_derivative*(1.0/8.0)
+        coil_derivative = coil_derivative*(1.0/64.0)
 
     end subroutine make_ring_coil
 
@@ -340,5 +328,16 @@ contains
         end do
 
     end function float_3d_transpose
+
+    function sum_vals(lenx, leny, lenz, array) result(result_array)
+        integer, intent(in) :: lenx, leny, lenz
+        real, intent(in) :: array(lenx, leny, lenz, 3)
+        real :: result_array, sizes(lenx, leny, lenz)
+
+        sizes = sqrt((array(:, :, :, 1)**2) + (array(:, :, :, 2)**2) + (array(:, :, :, 3)**2))
+
+        result_array = sum(sizes)
+
+    end function sum_vals
 
 end module utils
