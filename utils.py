@@ -300,7 +300,7 @@ def get_electromagnetic_response(array_t: np.ndarray, X: np.ndarray, Y: np.ndarr
 
         if i == 1:
             format = utils.utils.logical_3d_transpose(lenx=shape[1], leny=shape[0], lenz=shape[2], array=format)
-            derivative = utils.utils.float_3d_transpose(lenx=shape[1], leny=shape[0], lenz=shape[2], array=derivative)
+            derivative = -utils.utils.float_3d_transpose(lenx=shape[1], leny=shape[0], lenz=shape[2], array=derivative)
 
         integral = utils.utils.sum_vals(
             lenx=derivative.shape[0],
@@ -322,7 +322,7 @@ def get_electromagnetic_response(array_t: np.ndarray, X: np.ndarray, Y: np.ndarr
 
         result = result/(resistivity*(coil_length/coil_area))
 
-        response[f"center = {center}, {dict_name[i]}"] = result
+        response[f"{dict_name[i]} Current (A)"] = result
 
         if show_response:
             plt.plot(array_t, result)

@@ -127,5 +127,5 @@ def solve_electromagnetic_equation(
         current=current
     )
 
-    times = np.array([visu_dt*dt*i for i in range(array.shape[0])])
+    times = np.array([visu_dt*dt*(i+1) for i in range(array.shape[0])])
     return visu_dt*dt, times, array
