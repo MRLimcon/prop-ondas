@@ -297,15 +297,16 @@ module electromagnetic
     real, allocatable :: b_runge(:, :, :, :), e_runge(:, :, :, :)
     real, allocatable :: condu_over_permi(:, :, :, :), used_pml(:, :, :, :)
     real, allocatable :: inverse_permi(:, :, :, :), inverse_mag(:, :, :, :)
+    real :: dx_const
     real, parameter :: pi = 3.1415926535
     
 contains
 
-    subroutine curl(lenx, leny, lenz, obj, dx)
+    subroutine curl(lenx, leny, lenz, obj)
         implicit none
 
         integer, intent(in) :: lenx, leny, lenz
-        real, intent(in) :: obj(lenx, leny, lenz, 3), dx
+        real, intent(in) :: obj(lenx, leny, lenz, 3)
 
         curl_obj(2:lenx-1, 2:leny-1, 2:lenz-1, 1) = obj(2:lenx-1, 3:leny, 2:lenz-1, 3) - obj(2:lenx-1, 1:leny-2, 2:lenz-1, 3) &
                 - (obj(2:lenx-1, 2:leny-1, 3:lenz, 2) - obj(2:lenx-1, 2:leny-1, 1:lenz-2, 2))
@@ -316,15 +317,15 @@ contains
         curl_obj(2:lenx-1, 2:leny-1, 2:lenz-1, 3) = (obj(3:lenx, 2:leny-1, 2:lenz-1, 2) - obj(1:lenx-2, 2:leny-1, 2:lenz-1, 2)) &
                 - (obj(2:lenx-1, 3:leny, 2:lenz-1, 1) - obj(2:lenx-1, 1:leny-2, 2:lenz-1, 1))
 
-        curl_obj = (1/(2*dx))*curl_obj
+        curl_obj = dx_const*curl_obj
 
     end subroutine
 
-    subroutine runge(lenx, leny, lenz, B, E, dx, dt)
+    subroutine runge(lenx, leny, lenz, B, E, dt)
         implicit none
 
         integer, intent(in) :: lenx, leny, lenz
-        real, intent(in) :: B(lenx, leny, lenz, 3), E(lenx, leny, lenz, 3), dx, dt
+        real, intent(in) :: B(lenx, leny, lenz, 3), E(lenx, leny, lenz, 3), dt
         real :: effective_dt
         integer :: i, j
 
@@ -345,10 +346,10 @@ contains
                 effective_dt = dt
             end if
 
-            call curl(lenx, leny, lenz, se_runge(j, :, :, :, :), dx)
-            kb_runge(i, :, :, :, :) =  - (curl_obj(:, :, :, :)*inverse_mag) - (used_pml*sb_runge(j, :, :, :, :))
+            call curl(lenx, leny, lenz, se_runge(j, :, :, :, :))
+            kb_runge(i, :, :, :, :) =  - (curl_obj*inverse_mag) - (used_pml*sb_runge(j, :, :, :, :))
 
-            call curl(lenx, leny, lenz, sb_runge(j, :, :, :, :), dx)
+            call curl(lenx, leny, lenz, sb_runge(j, :, :, :, :))
             ke_runge(i, :, :, :, :) = (curl_obj*inverse_permi) - (condu_over_permi*se_runge(j, :, :, :, :))
 
             if ( i == 4 ) then
@@ -406,19 +407,15 @@ contains
         used_pml(:, :, :, 1) = (pml/mag_permi)
         used_pml(:, :, :, 2) = (pml/mag_permi)
         used_pml(:, :, :, 3) = (pml/mag_permi)
+        dx_const = (1/(2*dx))
 
         main_loop: do i = 2, sol_len
-            call runge(lenx, leny, lenz, B, E, dx, dt)
+            call runge(lenx, leny, lenz, B, E, dt)
             
             B = B + (b_runge*dt)
             E = E + (e_runge*dt)
 
-            if ( i < 100 ) then
-                write(*,*) maxval(e_runge), minval(e_runge)
-                write(*,*) maxval(b_runge), minval(b_runge)
-            end if
-
-            where(ew_format) E = ew(:, :, :, :)*(current*sin(dt*2*pi*freq*(i-1)))
+            where(ew_format) E = ew*(current*sin(dt*2*pi*freq*(i-1)))
 
             if ( mod(i, ar_steps) == 0 .and. j <= ar_len ) then
                 k = (100.0*j/ar_len)

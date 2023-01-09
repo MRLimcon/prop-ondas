@@ -243,7 +243,7 @@ contains
         steps = (2*pi)/dx
         ring_format = .False.
 
-        do concurrent (i = 0: steps)
+        do i = 0, steps
             block
                 logical :: local_points(lenx, leny, lenz)
                 real :: point(3), distances(lenx, leny, lenz)
@@ -282,7 +282,7 @@ contains
         integer :: i
 
         do concurrent (i = 1: steps)
-            result_array(i) = sum(pack(derivative*array(i, :, :, :, :), format))           
+            result_array(i) = sum(derivative*array(i, :, :, :, :))           
         end do
 
     end function get_coil_response
