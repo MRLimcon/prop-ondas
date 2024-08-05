@@ -1,22 +1,32 @@
 from matplotlib import cm
 import fortran_bins.utils as utils
 import numpy as np
+import pandas as pd
 from scipy.signal import find_peaks
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-def generate_excited_wave(t_max: float, dt: float, dx: float, freq: float, type: str = "ricker", simu_type: str = "normal", show_env: bool = False)-> np.ndarray:
+
+def generate_excited_wave(
+    t_max: float,
+    dt: float,
+    dx: float,
+    freq: float,
+    type: str = "ricker",
+    simu_type: str = "normal",
+    show_env: bool = False,
+) -> np.ndarray:
     if type == "ricker":
-        t_vals = np.arange(-(1/freq)+dt, (1/freq), dt)
-        exponent = np.exp(-(np.pi**2)*(freq**2)*(t_vals**2))
-        result = (1-(2*(np.pi**2)*(freq**2)*(t_vals**2)))*exponent*dx
-        #ints = utils.utils.fix_ew(ew_len=len(result), ew=result)
-        #t_vals = t_vals[ints[0]-1: ints[1]-1]
-        #result = result[ints[0]-1: ints[1]-1]
+        t_vals = np.arange(-(1 / freq) + dt, (1 / freq), dt)
+        exponent = np.exp(-(np.pi**2) * (freq**2) * (t_vals**2))
+        result = (1 - (2 * (np.pi**2) * (freq**2) * (t_vals**2))) * exponent * dx
+        # ints = utils.utils.fix_ew(ew_len=len(result), ew=result)
+        # t_vals = t_vals[ints[0]-1: ints[1]-1]
+        # result = result[ints[0]-1: ints[1]-1]
 
     else:
         t_vals = np.arange(0, t_max, dt)
-        result = np.sin(2*np.pi*freq*t_vals)*dx
+        result = np.sin(2 * np.pi * freq * t_vals) * dx
 
     if show_env:
         plt.plot(t_vals, result)
@@ -25,26 +35,35 @@ def generate_excited_wave(t_max: float, dt: float, dx: float, freq: float, type:
         plt.show()
 
     if simu_type == "acoustic":
-        final_result = result 
+        final_result = result
         result = np.zeros([final_result.shape[0], 2])
         result[:, 0] = final_result
-        result[:, 1] = final_result
+        result[:, 1] = -final_result
 
     return result
 
-def generate_mu_lambda(shear_speed, pressure_speed, plot_env: bool = False): #, rho):
-    mu = shear_speed**2 #*rho
-    lambda_1 = (pressure_speed**2) - (2*mu) #*rho
+
+def create_3d_space(sizex: float, sizey: float, sizez: float, dx: float):
+    x = np.arange(-sizex / 2, (sizex / 2) + dx, dx)
+    y = np.arange(-sizey / 2, (sizey / 2) + dx, dx)
+    z = np.arange(-sizez / 2, (sizez / 2) + dx, dx)
+
+    return np.meshgrid(x, y, z)
+
+
+def generate_mu_lambda(shear_speed, pressure_speed, plot_env: bool = False):  # , rho):
+    mu = shear_speed**2  # *rho
+    lambda_1 = (pressure_speed**2) - (2 * mu)  # *rho
 
     if plot_env:
-        shw = plt.imshow(lambda_1.T, cmap = cm.coolwarm)
+        shw = plt.imshow(lambda_1.T, cmap=cm.coolwarm)
         plt.title("Lambda")
-        plt.colorbar(shw, cmap = cm.coolwarm)
+        plt.colorbar(shw, cmap=cm.coolwarm)
         plt.show()
 
-        shw = plt.imshow(mu.T, cmap = cm.coolwarm)
+        shw = plt.imshow(mu.T, cmap=cm.coolwarm)
         plt.title("Mu")
-        plt.colorbar(shw, cmap = cm.coolwarm)
+        plt.colorbar(shw, cmap=cm.coolwarm)
         plt.show()
 
     return lambda_1, mu
@@ -52,13 +71,13 @@ def generate_mu_lambda(shear_speed, pressure_speed, plot_env: bool = False): #, 
 
 def make_fft(data: np.ndarray, timestep: float, dist: float) -> None:
     """
-        Visualizes the frequency peaks for the values
+    Visualizes the frequency peaks for the values
     """
-    new_data = (data-np.average(data))/np.max(data)
+    new_data = (data - np.average(data)) / np.max(data)
     starts = 0
 
     for i, value in enumerate(new_data):
-        if all(np.abs(val) >= 0.3 for val in new_data[i:i+3]):
+        if all(np.abs(val) >= 0.3 for val in new_data[i : i + 3]):
             starts = i
             break
 
@@ -76,23 +95,26 @@ def make_fft(data: np.ndarray, timestep: float, dist: float) -> None:
     print(f"Starts at {starts*timestep} s and distance is {dist}")
     print(f"Frequencies are {freq[peaks1]}")
 
+
 def detect_signals(data: np.ndarray):
-    new_data = (data-np.average(data))/np.max(data)
+    new_data = (data - np.average(data)) / np.max(data)
     len_data = len(data)
     starts = []
     ends = []
 
     for i, value in enumerate(new_data):
-        if all(np.abs(val) >= 0.3 for val in new_data[i:i+3]):
+        if all(np.abs(val) >= 0.3 for val in new_data[i : i + 3]):
             if len(starts) <= len(ends):
                 starts.append(i)
         else:
             if len(ends) < len(starts):
                 ending_integers = len_data - i - 1
-                if ending_integers > 15 and all(np.abs(value) < 0.2 for value in new_data[i:i+10]):
+                if ending_integers > 15 and all(
+                    np.abs(value) < 0.2 for value in new_data[i : i + 10]
+                ):
                     ends.append(i)
 
-        if i == len_data-1 and len(ends) < len(starts):
+        if i == len_data - 1 and len(ends) < len(starts):
             ends.append(i)
 
     if len(starts) >= 2 and len(ends) >= 2:
@@ -100,79 +122,352 @@ def detect_signals(data: np.ndarray):
     else:
         return None
 
+
 def create_wave(
-        x_max: float, y_max: float, t_max: float, dx: float, dt: float) -> tuple[np.ndarray]:
+    x_max: float, y_max: float, t_max: float, dx: float, dt: float
+) -> tuple[np.ndarray]:
     """
-        Create the initial conditions for the simulation,
-        x_max is the height of the simulated borehole,
-        y_max is the radius of the simulation,
-        t_max is the maximum time for the simulation,
-        dx and dt are the steps in space and time,
-        freq is the frequency of the generated monopole wave,
-        decay is the spatial decay of the generated wave
+    Create the initial conditions for the simulation,
+    x_max is the height of the simulated borehole,
+    y_max is the radius of the simulation,
+    t_max is the maximum time for the simulation,
+    dx and dt are the steps in space and time,
+    freq is the frequency of the generated monopole wave,
+    decay is the spatial decay of the generated wave
     """
-    array_x = np.arange(-x_max/2, (x_max/2)+dx, dx)
-    array_y = np.arange(-y_max, y_max+dx, dx)
+    array_x = np.arange(-x_max / 2, (x_max / 2) + dx, dx)
+    array_y = np.arange(-y_max, y_max + dx, dx)
     array_t = np.arange(0, t_max, dt)
 
     X, Y = np.meshgrid(array_x, array_y)
     array_wave = np.zeros(X.shape)
     return array_t, X, Y, array_wave
-    
-def plot_f_l_frames(array: np.ndarray) -> None:
+
+
+def plot_f_l_frames(array: np.ndarray, X=None, Y=None, Z=None) -> None:
     """
-        Plot the initial condition and the last frame of the simulation
+    Plot the initial condition and the last frame of the simulation
     """
     if len(array.shape) == 3:
-        shw = plt.imshow(array[0], cmap = cm.coolwarm)
+        shw = plt.imshow(array[0], cmap=cm.coolwarm)
         plt.title("First frame")
-        plt.colorbar(shw, cmap = cm.coolwarm)
+        plt.colorbar(shw, cmap=cm.coolwarm)
         plt.show()
 
-        shw = plt.imshow(array[-1], cmap = cm.coolwarm)
+        shw = plt.imshow(array[-1], cmap=cm.coolwarm)
         plt.title("Last frame")
-        plt.colorbar(shw, cmap = cm.coolwarm)
+        plt.colorbar(shw, cmap=cm.coolwarm)
         plt.show()
-    elif len(array.shape) == 4:
-        shw = plt.imshow(array[0, :, :, 0], cmap = cm.coolwarm)
-        plt.title("First frame - u")
-        plt.colorbar(shw, cmap = cm.coolwarm)
-        plt.show()
-
-        shw = plt.imshow(array[-1, :, :, 0], cmap = cm.coolwarm)
-        plt.title("Last frame - u")
-        plt.colorbar(shw, cmap = cm.coolwarm)
-        plt.show()
-
-        shw = plt.imshow(array[0, :, :, 1], cmap = cm.coolwarm)
-        plt.title("First frame - v")
-        plt.colorbar(shw, cmap = cm.coolwarm)
+    elif len(array.shape) == 5:
+        ax = plt.figure().add_subplot(projection="3d")
+        shw = ax.quiver(
+            X,
+            Y,
+            Z,
+            array[0, :, :, :, 0],
+            array[0, :, :, :, 1],
+            array[0, :, :, :, 2],
+            cmap=cm.coolwarm,
+        )
+        plt.title("First Frame")
         plt.show()
 
-        shw = plt.imshow(array[-1, :, :, 1], cmap = cm.coolwarm)
-        plt.title("Last frame - v")
-        plt.colorbar(shw, cmap = cm.coolwarm)
+        ax = plt.figure().add_subplot(projection="3d")
+        shw = ax.quiver(
+            X,
+            Y,
+            Z,
+            array[-1, :, :, :, 0],
+            array[-1, :, :, :, 1],
+            array[-1, :, :, :, 2],
+            cmap=cm.coolwarm,
+        )
+        plt.title("Last frame")
         plt.show()
 
-def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float, 
-    dx: float, distance:float = 0.12, print_freqs: bool = False) -> None:
+        half = int(array.shape[1] / 2)
+        plt.quiver(
+            array[-1, half, :, :, 1].T, array[-1, half, :, :, 2].T, cmap=cm.coolwarm
+        )
+        plt.title("Last frame - quiver cut")
+        plt.show()
+
+        array_test = (
+            np.sqrt(array[-1, half, :, :, 1] ** 2)
+            + (array[-1, half, :, :, 0] ** 2)
+            + (array[-1, half, :, :, 2] ** 2)
+        )
+        plt.imshow(array_test.T, cmap=cm.coolwarm)
+        plt.title("Last frame - intensity cut")
+        plt.show()
+
+
+def make_coil(
+    X: np.ndarray,
+    Y: np.ndarray,
+    Z: np.ndarray,
+    dx: float,
+    coil_radius: float,
+    radius: float,
+    center: list[float],
+    declination: float,
+    voltage: float = 1.0,
+    show_env: bool = False,
+):
+
+    shape = X.shape
+
+    cent = [
+        (center[0] - X[0, 0, 0]) / dx,
+        (center[1] - Y[0, 0, 0]) / dx,
+        (center[2] - Z[0, 0, 0]) / dx,
+    ]
+    cent = [int(val) for val in cent]
+    zone = [
+        cent[0] - int((radius + coil_radius) / dx) - 2,
+        cent[0] + int((radius + coil_radius) / dx) + 2,
+        cent[1] - int((radius + coil_radius) / dx) - 2,
+        cent[1] + int((radius + coil_radius) / dx) + 2,
+        cent[2] - int((radius + coil_radius) / dx) - 2,
+        cent[2] + int((radius + coil_radius) / dx) + 2,
+    ]
+    local_format = utils.utils.make_logical_array(
+        lenx=zone[1] - zone[0], leny=zone[3] - zone[2], lenz=zone[5] - zone[4]
+    )
+    local_derivative = utils.utils.make_array(
+        lenx=zone[1] - zone[0], leny=zone[3] - zone[2], lenz=zone[5] - zone[4]
+    )
+
+    format = utils.utils.make_logical_array(lenx=shape[0], leny=shape[1], lenz=shape[2])
+    derivative = utils.utils.make_array(lenx=shape[0], leny=shape[1], lenz=shape[2])
+
+    utils.utils.make_ring_coil(
+        lenx=zone[1] - zone[0],
+        leny=zone[3] - zone[2],
+        lenz=zone[5] - zone[4],
+        x=X[zone[0] : zone[1], zone[2] : zone[3], zone[4] : zone[5]],
+        y=Y[zone[0] : zone[1], zone[2] : zone[3], zone[4] : zone[5]],
+        z=Z[zone[0] : zone[1], zone[2] : zone[3], zone[4] : zone[5]],
+        dx=dx,
+        dt=dx / (10 * radius),
+        radius_b=coil_radius,
+        center=center,
+        radius=radius,
+        declination=declination,
+        coil_format=local_format,
+        coil_derivative=local_derivative,
+    )
+
+    derivative[zone[0] : zone[1], zone[2] : zone[3], zone[4] : zone[5], :] = (
+        local_derivative
+    )
+    format[zone[0] : zone[1], zone[2] : zone[3], zone[4] : zone[5], :] = local_format
+
+    integral = utils.utils.sum_vals(
+        lenx=derivative.shape[0],
+        leny=derivative.shape[1],
+        lenz=derivative.shape[2],
+        array=derivative,
+    )
+    derivative = derivative * (voltage / integral)
+
+    if show_env:
+        ax = plt.figure().add_subplot(projection="3d")
+        ax.quiver(
+            X,
+            Y,
+            Z,
+            derivative[:, :, :, 0],
+            derivative[:, :, :, 1],
+            derivative[:, :, :, 2],
+            cmap=cm.coolwarm,
+        )
+        plt.title("Coil - current direction")
+        plt.show()
+
+        fig = plt.figure()
+        ax = fig.add_subplot(projection="3d")
+        print_format = format[:, :, :, 0].astype(bool)
+        colors = np.empty(X.shape, dtype=object)
+        colors[print_format] = "red"
+        ax.voxels(print_format, facecolors=colors, alpha=1)
+        plt.title("Coil - format")
+        plt.show()
+
+    return format, derivative
+
+
+def get_electromagnetic_response(
+    array_t: np.ndarray,
+    X: np.ndarray,
+    Y: np.ndarray,
+    Z: np.ndarray,
+    array: np.ndarray,
+    dx: float,
+    params: dict,
+    resistivity: float = 0.0000000168,
+    show_response: bool = True,
+):
+
+    response = pd.DataFrame()
+    response["Time (s)"] = array_t
+    length = len(array)
+    radius = params["radius"]
+    r_radius = params["ring_radius"]
+    coil_length = 2 * np.pi * radius
+    coil_area = np.pi * (r_radius**2)
+    center = [params["center"][0], params["center"][1], params["center"][2]]
+    shape = X.shape
+    dict_name = {0: "X", 1: "Y", 2: "Z"}
+
+    for i in range(3):
+        if i == 2:
+            declination = 0
+        else:
+            declination = np.pi / 2
+
+        if i == 1:
+            used_shape = [shape[1], shape[0], shape[2]]
+            used_center = [center[1], center[0], center[2]]
+            used_y = utils.utils.float_transpose(
+                lenx=shape[0], leny=shape[1], lenz=shape[2], array=X
+            )
+            used_x = utils.utils.float_transpose(
+                lenx=shape[0], leny=shape[1], lenz=shape[2], array=Y
+            )
+            used_z = utils.utils.float_transpose(
+                lenx=shape[0], leny=shape[1], lenz=shape[2], array=Z
+            )
+        else:
+            used_shape = shape
+            used_center = center
+            used_x = X
+            used_y = Y
+            used_z = Z
+
+        cent = [
+            (used_center[0] - used_x[0, 0, 0]) / dx,
+            (used_center[1] - used_y[0, 0, 0]) / dx,
+            (used_center[2] - used_z[0, 0, 0]) / dx,
+        ]
+        cent = [int(val) for val in cent]
+        zone = [
+            cent[0] - int((radius + r_radius) / dx) - 2,
+            cent[0] + int((radius + r_radius) / dx) + 2,
+            cent[1] - int((radius + r_radius) / dx) - 2,
+            cent[1] + int((radius + r_radius) / dx) + 2,
+            cent[2] - int((radius + r_radius) / dx) - 2,
+            cent[2] + int((radius + r_radius) / dx) + 2,
+        ]
+        local_format = utils.utils.make_logical_array(
+            lenx=zone[1] - zone[0], leny=zone[3] - zone[2], lenz=zone[5] - zone[4]
+        )
+        local_derivative = utils.utils.make_array(
+            lenx=zone[1] - zone[0], leny=zone[3] - zone[2], lenz=zone[5] - zone[4]
+        )
+
+        format = utils.utils.make_logical_array(
+            lenx=used_shape[0], leny=used_shape[1], lenz=used_shape[2]
+        )
+        derivative = utils.utils.make_array(
+            lenx=used_shape[0], leny=used_shape[1], lenz=used_shape[2]
+        )
+
+        utils.utils.make_ring_coil(
+            lenx=zone[1] - zone[0],
+            leny=zone[3] - zone[2],
+            lenz=zone[5] - zone[4],
+            x=used_x[zone[0] : zone[1], zone[2] : zone[3], zone[4] : zone[5]],
+            y=used_y[zone[0] : zone[1], zone[2] : zone[3], zone[4] : zone[5]],
+            z=used_z[zone[0] : zone[1], zone[2] : zone[3], zone[4] : zone[5]],
+            dx=dx,
+            dt=dx / (10 * radius),
+            radius_b=r_radius,
+            center=used_center,
+            radius=radius,
+            declination=declination,
+            coil_format=local_format,
+            coil_derivative=local_derivative,
+        )
+
+        derivative[zone[0] : zone[1], zone[2] : zone[3], zone[4] : zone[5], :] = (
+            local_derivative
+        )
+        format[zone[0] : zone[1], zone[2] : zone[3], zone[4] : zone[5], :] = (
+            local_format
+        )
+
+        if i == 1:
+            format = utils.utils.logical_3d_transpose(
+                lenx=shape[1], leny=shape[0], lenz=shape[2], array=format
+            )
+            derivative = -utils.utils.float_3d_transpose(
+                lenx=shape[1], leny=shape[0], lenz=shape[2], array=derivative
+            )
+
+        integral = utils.utils.sum_vals(
+            lenx=derivative.shape[0],
+            leny=derivative.shape[1],
+            lenz=derivative.shape[2],
+            array=derivative,
+        )
+        derivative = derivative * (coil_length / integral)
+
+        result = utils.utils.get_coil_response(
+            lenx=derivative.shape[0],
+            leny=derivative.shape[1],
+            lenz=derivative.shape[2],
+            steps=length,
+            derivative=derivative,
+            format=format,
+            array=array,
+        )
+
+        result = result / (resistivity * (coil_length / coil_area))
+
+        response[f"{dict_name[i]} Current (A)"] = result
+
+        if show_response:
+            plt.plot(array_t, result)
+            plt.ylabel("Current (A)")
+            plt.xlabel("Time(s)")
+            plt.title(f"{dict_name[i]}")
+            plt.legend()
+            plt.tight_layout()
+            plt.show()
+
+    return response
+
+
+def plot_response(
+    array_t: np.ndarray,
+    array: np.ndarray,
+    dt: float,
+    dx: float,
+    distance: float = 0.12,
+    print_freqs: bool = False,
+    save_data: bool = False,
+) -> None:
     """
-        Generate the receiver responses along the borehole
+    Generate the receiver responses along the borehole
     """
-    y_pos = int(array.shape[2]/2)+2
-    steps = int(distance/dx)
-    initial = int(array.shape[1]/2 - int(3.5/dx)) 
+    y_pos = int(array.shape[2] / 2) + 4
+    steps = int(distance / dx)
+    initial = int(array.shape[1] / 2 - int(3.5 / dx))
     starts = []
     ends = []
     signal_data = []
     dists = []
 
-    
+    if save_data:
+        data = pd.DataFrame()
+        data["Time (s)"] = array_t
+
     if len(array.shape) == 3:
-        fig, axes = plt.subplots(nrows=4, ncols=1)
-        for i in range(4):
-            x_pos = initial - (steps*i)
-            dist = np.abs(x_pos - int(array.shape[1]/2))*dx
+        fig, axes = plt.subplots(nrows=6, ncols=1)
+        for i in range(6):
+            x_pos = initial - (steps * i)
+            dist = np.abs(x_pos - int(array.shape[1] / 2)) * dx
             new_values = detect_signals(array[:, x_pos, y_pos])
 
             if new_values != None:
@@ -184,17 +479,22 @@ def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float,
             if print_freqs:
                 make_fft(array[:, x_pos, y_pos], dt, dist)
 
+            if save_data:
+                data[f"Distance: {dist}"] = array[:, x_pos, y_pos] / np.max(
+                    array[:, x_pos, y_pos]
+                )
+
             axes[i].plot(array_t, array[:, x_pos, y_pos])
             axes[i].set_title(f"Distance from source: {dist} m")
-        
+
         fig.tight_layout()
         plt.show()
     elif len(array.shape) == 4:
         for j in [0, 1]:
-            fig, axes = plt.subplots(nrows=4, ncols=1)
-            for i in range(4):
-                x_pos = initial - (steps*i)
-                dist = np.abs(x_pos - int(array.shape[1]/2))*dx
+            fig, axes = plt.subplots(nrows=6, ncols=1)
+            for i in range(6):
+                x_pos = initial - (steps * i)
+                dist = np.abs(x_pos - int(array.shape[1] / 2)) * dx
                 new_values = detect_signals(array[:, x_pos, y_pos, j])
 
                 if new_values != None:
@@ -206,44 +506,57 @@ def plot_response(array_t: np.ndarray, array: np.ndarray, dt: float,
                 if print_freqs:
                     make_fft(array[:, x_pos, y_pos, j], dt, dist)
 
+                if save_data:
+                    data[f"Distance {j}: {dist}"] = array[:, x_pos, y_pos, j] / np.max(
+                        array[:, x_pos, y_pos, j]
+                    )
+
                 axes[i].plot(array_t, array[:, x_pos, y_pos, j])
                 axes[i].set_title(f"Distance from source: {dist} m")
 
             fig.tight_layout()
             plt.show()
-        
-    #starts = np.array(starts)
-    #ends = np.array(ends)
-    #signal_data = np.array(signal_data)
-    #dists = np.array(dists)
 
-    #print("First wave slowness:")
-    #print(np.average(np.abs((starts[:-1, 0]-starts[-1, 0])*dt / (dists[:-1]-dists[-1]))))
-    #print("Stoneley wave slowness:")
-    #print(np.average(np.abs((starts[:-1, 1]-starts[-1, 1])*dt / (dists[:-1]-dists[-1]))))
+    # starts = np.array(starts)
+    # ends = np.array(ends)
+    # signal_data = np.array(signal_data)
+    # dists = np.array(dists)
 
-    #print("Timestamps:")
-    #print(starts*dt)
-    #print(ends*dt)
+    # print("First wave slowness:")
+    # print(np.average(np.abs((starts[:-1, 0]-starts[-1, 0])*dt / (dists[:-1]-dists[-1]))))
+    # print("Stoneley wave slowness:")
+    # print(np.average(np.abs((starts[:-1, 1]-starts[-1, 1])*dt / (dists[:-1]-dists[-1]))))
+
+    # print("Timestamps:")
+    # print(starts*dt)
+    # print(ends*dt)
+
+    if save_data:
+        data.to_csv("./results/data.csv")
+
 
 def animate_simulation(
-        array_t: np.ndarray, result: np.ndarray, num_frames: float, file_name: str = None, 
-        X: np.ndarray = None, Y: np.ndarray = None, ani_type: str = "2d") -> None:
+    array_t: np.ndarray,
+    result: np.ndarray,
+    num_frames: float,
+    file_name: str = None,
+    X: np.ndarray = None,
+    Y: np.ndarray = None,
+    ani_type: str = "2d",
+) -> None:
     """
-        Create an animation of the wave propagation
+    Create an animation of the wave propagation
     """
     global ax, kind
 
     if ani_type == "surface":
         kind = True
         fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
-        plot = ax.plot_surface(X, Y, result[0].T, cmap=cm.coolwarm,
-                        linewidth=0)
+        plot = ax.plot_surface(X, Y, result[0].T, cmap=cm.coolwarm, linewidth=0)
     else:
         kind = False
         fig, ax = plt.subplots()
-        plot = ax.imshow(result[0], cmap = cm.coolwarm)
-    
+        plot = ax.imshow(result[0], cmap=cm.coolwarm)
 
     def change_plot(frame_number, zarray, plot):
         global ax, kind
@@ -251,20 +564,28 @@ def animate_simulation(
         print(f"frame n: {frame_number}")
         ax.clear()
         if kind:
-            plot = ax.plot_surface(X, Y, zarray[frame_number, :, :].T,
-                cmap=cm.coolwarm, linewidth=0)
+            plot = ax.plot_surface(
+                X, Y, zarray[frame_number, :, :].T, cmap=cm.coolwarm, linewidth=0
+            )
         else:
-            plot = ax.imshow(zarray[frame_number, :, :], cmap = cm.coolwarm)
-        return plot,
+            plot = ax.imshow(zarray[frame_number, :, :], cmap=cm.coolwarm)
+        return (plot,)
 
     fps = 30
-    frame_step = int(len(array_t)/num_frames)
+    frame_step = int(len(array_t) / num_frames)
     plot_array = np.zeros([num_frames, result.shape[1], result.shape[2]])
 
     for i in range(num_frames):
-        plot_array[i] = result[i*frame_step]
+        plot_array[i] = result[i * frame_step]
 
-    ani = animation.FuncAnimation(fig, change_plot, frames=num_frames, fargs=(plot_array, plot), interval=1000 / fps, blit=False)
+    ani = animation.FuncAnimation(
+        fig,
+        change_plot,
+        frames=num_frames,
+        fargs=(plot_array, plot),
+        interval=1000 / fps,
+        blit=False,
+    )
 
     if file_name != None:
         ani.save(f"./results/{file_name}")
